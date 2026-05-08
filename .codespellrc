@@ -1,0 +1,4 @@
+[codespell]
+skip = .git,build,venv,Testing
+# False positives
+ignore-words-list = IndexT

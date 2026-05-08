@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.egg-info/
+*.py[cod]
+venv/
+scripts/.bootstrap.env
+
+# Build / packaging
+_skbuild/
+build/
+dist/
+Testing/
+
+# Compiled extension (editable installs)
+python/greenpeas/_gppy*.pyd
+python/greenpeas/_gppy*.so

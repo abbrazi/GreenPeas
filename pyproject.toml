@@ -1,0 +1,23 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.13"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "greenpeas"
+version = "0.1.0"
+description = "Python bindings for GreenPeas QEC codes"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["stim==1.15.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.scikit-build]
+minimum-version = "0.10"
+wheel.packages = ["python/greenpeas"]
+build.targets = ["_gppy"]
+install.components = ["python"]
+
+[tool.scikit-build.cmake.define]
+GP_BUILD_PYTHON = "ON"

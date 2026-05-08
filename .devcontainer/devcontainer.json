@@ -1,0 +1,40 @@
+{
+	"name": "GreenPeas Dev Container",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	// Temporary workaround for nvidia-ctk < 1.18 NVML passthrough.
+	// Explicit --device flags must match the device nodes on the host.
+	"runArgs": [
+		"--gpus",
+		"all",
+		"--device=/dev/nvidiactl",
+		"--device=/dev/nvidia-uvm",
+		"--device=/dev/nvidia-uvm-tools",
+		"--device=/dev/nvidia0",
+		"--device=/dev/nvidia1",
+		"--device=/dev/nvidia2",
+		"--device=/dev/nvidia3"
+	],
+	"hostRequirements": {
+		"gpu": "optional"
+	},
+	"remoteUser": "vscode",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.cmake-tools",
+				"ms-python.python",
+				"ms-python.vscode-pylance"
+			],
+			"settings": {
+				"cmake.configureOnOpen": true,
+				"python.defaultInterpreterPath": "/usr/bin/python3"
+			}
+		}
+	},
+	"mounts": [
+  		"source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind"
+	]
+}
