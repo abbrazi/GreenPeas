@@ -59,7 +59,7 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
 
   py::class_<HostDriverVariant, std::unique_ptr<HostDriverVariant>>(error_analysis, "Driver")
       .def(
-          "compile",
+          "compile_detector_error_model",
           [](HostDriverVariant &driver, const py::object &circuit) {
             return toPython(std::visit(
                 [&](auto &d) { return d.compile(fromPython(circuit)); },
@@ -73,7 +73,7 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
         return getDriver(fromPython(circuit), correlation_level);
       },
       py::arg("circuit"),
-      py::arg("correlation_level"));
+      py::arg("correlation_level") = CorrelationLevel::L2);
 }
 
 } // namespace gp::pybind

@@ -7,11 +7,16 @@ name = "greenpeas"
 version = "0.1.0"
 description = "Python bindings for GreenPeas QEC codes"
 readme = "README.md"
+authors = [{ name = "Abbas Bracken Ziad", email = "abbasbrackenziad@gmail.com" }]
+license = "Apache-2.0"
 requires-python = ">=3.8"
 dependencies = ["stim==1.15.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
 
 [tool.scikit-build]
 minimum-version = "0.10"

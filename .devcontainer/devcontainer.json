@@ -3,18 +3,11 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	// Temporary workaround for nvidia-ctk < 1.18 NVML passthrough.
-	// Explicit --device flags must match the device nodes on the host.
+	// Host: nvidia-ctk >= 1.18. Use --runtime=nvidia so CDI injects GPUs
 	"runArgs": [
+		"--runtime=nvidia",
 		"--gpus",
-		"all",
-		"--device=/dev/nvidiactl",
-		"--device=/dev/nvidia-uvm",
-		"--device=/dev/nvidia-uvm-tools",
-		"--device=/dev/nvidia0",
-		"--device=/dev/nvidia1",
-		"--device=/dev/nvidia2",
-		"--device=/dev/nvidia3"
+		"all"
 	],
 	"hostRequirements": {
 		"gpu": "optional"
