@@ -20,17 +20,22 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install CUDA toolkit (no driver)
+# Install a minimal CUDA toolchain (no driver).
+# Avoid the full cuda-toolkit: it exhausts GitHub Actions disk space.
 ARG CUDA_VERSION=12-8
 RUN wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
     && dpkg -i cuda-keyring_1.1-1_all.deb \
     && rm cuda-keyring_1.1-1_all.deb \
     && apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends cuda-toolkit-${CUDA_VERSION} \
+    && apt-get -y install --no-install-recommends \
+        cuda-nvcc-${CUDA_VERSION} \
+        cuda-cudart-dev-${CUDA_VERSION} \
+        cuda-cccl-${CUDA_VERSION} \
+    && ln -sfn /usr/local/cuda-$(echo "${CUDA_VERSION}" | tr '-' '.') /usr/local/cuda \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV PATH=/usr/local/cuda/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64
 ENV CUDAToolkit_ROOT=/usr/local/cuda
 ENV CMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc
