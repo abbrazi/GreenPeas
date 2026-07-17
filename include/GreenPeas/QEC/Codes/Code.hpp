@@ -52,7 +52,7 @@ HOST inline auto toString(CodeType type) -> const char * {
   case CodeType::BB:
     return "bb";
   default:
-    throw std::invalid_argument("Unkown code type.");
+    throw std::invalid_argument("Unknown code type.");
   }
 }
 
@@ -60,9 +60,8 @@ HOST inline auto toString(CodeType type) -> const char * {
 /// @param type Code type.
 /// @param d Code distance.
 /// @param root Root data directory.
-HOST inline auto getCodePath(CodeType type,
-                             uint32_t d,
-                             const std::string &root) -> std::string {
+HOST inline auto getCodePath(CodeType type, uint32_t d, const std::string &root)
+    -> std::string {
   return root + "/codes/" + toString(type) + "/d" + std::to_string(d);
 }
 

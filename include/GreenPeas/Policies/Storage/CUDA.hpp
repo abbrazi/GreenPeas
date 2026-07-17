@@ -46,10 +46,10 @@ struct CUDAStorage {
   /// @param src Source buffer.
   /// @param size Number of `T` elements to copy.
   template <typename T, typename DestinationStorage>
-    requires std::is_same_v<DestinationStorage, CUDAStorage> ||
-             std::is_same_v<DestinationStorage, HostStorage>
-  HOST static void
-  copyTo(T *dst, const T *src, size_t size, DestinationStorage) {
+  requires std::is_same_v<DestinationStorage, CUDAStorage> ||
+      std::is_same_v<DestinationStorage, HostStorage>
+          HOST static void
+          copyTo(T *dst, const T *src, size_t size, DestinationStorage) {
     constexpr auto kind = std::is_same_v<DestinationStorage, CUDAStorage>
                               ? cudaMemcpyDeviceToDevice
                               : cudaMemcpyDeviceToHost;
@@ -63,9 +63,10 @@ struct CUDAStorage {
   /// @param src Source buffer.
   /// @param size Number of `T` elements to copy.
   template <typename T, typename SourceStorage>
-    requires std::is_same_v<SourceStorage, CUDAStorage> ||
-             std::is_same_v<SourceStorage, HostStorage>
-  HOST static void copyFrom(T *dst, const T *src, size_t size, SourceStorage) {
+  requires std::is_same_v<SourceStorage, CUDAStorage> ||
+      std::is_same_v<SourceStorage, HostStorage>
+          HOST static void
+          copyFrom(T *dst, const T *src, size_t size, SourceStorage) {
     constexpr auto kind = std::is_same_v<SourceStorage, CUDAStorage>
                               ? cudaMemcpyDeviceToDevice
                               : cudaMemcpyHostToDevice;

@@ -38,8 +38,7 @@ struct HostStorage {
   /// @param src Source buffer.
   /// @param size Number of `T` elements to copy.
   template <typename T, typename DestinationStorage>
-    requires std::is_same_v<DestinationStorage, HostStorage>
-  HOST static void
+  requires std::is_same_v<DestinationStorage, HostStorage> HOST static void
   copyTo(T *dst, const T *src, size_t size, DestinationStorage) {
     std::copy(src, src + size, dst);
   }
@@ -51,8 +50,8 @@ struct HostStorage {
   /// @param src Source buffer.
   /// @param size Number of `T` elements to copy.
   template <typename T, typename SourceStorage>
-    requires std::is_same_v<SourceStorage, HostStorage>
-  HOST static void copyFrom(T *dst, const T *src, size_t size, SourceStorage) {
+  requires std::is_same_v<SourceStorage, HostStorage> HOST static void
+  copyFrom(T *dst, const T *src, size_t size, SourceStorage) {
     std::copy(src, src + size, dst);
   }
 

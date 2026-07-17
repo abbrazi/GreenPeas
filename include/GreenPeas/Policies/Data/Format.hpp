@@ -7,7 +7,7 @@
 
 namespace gp {
 
-/// @brief COO (coordinate) sparse matrix format.
+/// @brief COUP (coordinate) sparse matrix format.
 struct COOFormat {
   /// @brief Can convert from Matrix Market (.mtx) file.
   static constexpr bool isCoordinate = true;

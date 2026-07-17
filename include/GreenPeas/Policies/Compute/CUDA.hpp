@@ -295,9 +295,8 @@ struct CUDACompute {
   }
 
   template <typename Worldview>
-  HOST static void genErrorClasses(Worldview view,
-                                   uint32_t numNodes,
-                                   uint32_t numWordsPerNode) {
+  HOST static void
+  genErrorClasses(Worldview view, uint32_t numNodes, uint32_t numWordsPerNode) {
     monolithicTraversal(numNodes,
                         CUDAErrorClassGenerator<>(view.sense.matrix,
                                                   view.error.classes.a,

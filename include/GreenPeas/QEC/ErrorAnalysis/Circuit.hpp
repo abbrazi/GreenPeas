@@ -420,7 +420,8 @@ struct Circuit {
   /// @brief Build a SM circuit from a Stim circuit.
   /// @param circuit Input Stim circuit.
   /// @return Parsed SM circuit with STEPG and initial sensitivities.
-  HOST static auto fromStimCircuit(const stim::Circuit &circuit) -> Circuit<Layout, Level> {
+  HOST static auto fromStimCircuit(const stim::Circuit &circuit)
+      -> Circuit<Layout, Level> {
     CircuitParameters<Level> parameters;
 
     const auto stats = circuit.compute_stats();
@@ -435,9 +436,8 @@ struct Circuit {
 
     nativeCircuit.initialise();
 
-    circuit.for_each_operation([&](const stim::CircuitInstruction &op) {
-      nativeCircuit.applyOp(op);
-    });
+    circuit.for_each_operation(
+        [&](const stim::CircuitInstruction &op) { nativeCircuit.applyOp(op); });
 
     return nativeCircuit;
   }

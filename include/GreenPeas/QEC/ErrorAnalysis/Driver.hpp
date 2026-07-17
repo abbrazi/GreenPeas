@@ -56,8 +56,8 @@ struct Driver {
   HOST auto getScratchpadSize() -> uint32_t {
     auto view = getView();
 
-    return Compute::getScratchpadSize(view, error.hashes.a.size, sortBytes,
-                                      reduceBytes);
+    return Compute::getScratchpadSize(
+        view, error.hashes.a.size, sortBytes, reduceBytes);
   }
 
   HOST void reset() {
@@ -154,7 +154,8 @@ struct Driver {
     return getDEM(native.parameters.numDetectors);
   }
 
-  HOST static auto fromStimCircuit(const stim::Circuit &circuit) -> Driver<Storage, Compute, Layout, Level, W> {
+  HOST static auto fromStimCircuit(const stim::Circuit &circuit)
+      -> Driver<Storage, Compute, Layout, Level, W> {
     CircuitParameters<Level> parameters;
 
     const auto stats = circuit.compute_stats();

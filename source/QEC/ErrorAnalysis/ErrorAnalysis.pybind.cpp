@@ -30,7 +30,8 @@ auto toPython(const stim::DetectorErrorModel &dem) -> py::object {
   return py::module_::import("stim").attr("DetectorErrorModel")(dem.str());
 }
 
-auto getDriver(const stim::Circuit &circuit, CorrelationLevel level) -> std::unique_ptr<HostDriverVariant> {
+auto getDriver(const stim::Circuit &circuit, CorrelationLevel level)
+    -> std::unique_ptr<HostDriverVariant> {
   switch (level) {
   case CorrelationLevel::L0:
     return std::make_unique<HostDriverVariant>(
@@ -57,7 +58,8 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
       .value("L2", CorrelationLevel::L2)
       .export_values();
 
-  py::class_<HostDriverVariant, std::unique_ptr<HostDriverVariant>>(error_analysis, "Driver")
+  py::class_<HostDriverVariant, std::unique_ptr<HostDriverVariant>>(
+      error_analysis, "Driver")
       .def(
           "compile_detector_error_model",
           [](HostDriverVariant &driver, const py::object &circuit) {

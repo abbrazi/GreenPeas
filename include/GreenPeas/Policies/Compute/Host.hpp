@@ -41,18 +41,16 @@ struct HostCompute {
   }
 
   template <typename Worldview>
-  HOST static void genErrorClasses(Worldview view,
-                                   uint32_t numNodes,
-                                   uint32_t numWordsPerNode) {
+  HOST static void
+  genErrorClasses(Worldview view, uint32_t numNodes, uint32_t numWordsPerNode) {
     (void)view;
     (void)numNodes;
     (void)numWordsPerNode;
   }
 
   template <typename Worldview>
-  HOST static void sortErrorClasses(Worldview &view,
-                                    uint32_t numNodes,
-                                    size_t sortBytes) {
+  HOST static void
+  sortErrorClasses(Worldview &view, uint32_t numNodes, size_t sortBytes) {
     (void)view;
     (void)numNodes;
     (void)sortBytes;
@@ -66,9 +64,8 @@ struct HostCompute {
   }
 
   template <typename Worldview>
-  HOST static void reduceErrorClasses(Worldview view,
-                                      uint32_t numNodes,
-                                      size_t reduceBytes) {
+  HOST static void
+  reduceErrorClasses(Worldview view, uint32_t numNodes, size_t reduceBytes) {
     (void)view;
     (void)numNodes;
     (void)reduceBytes;

@@ -264,7 +264,7 @@ struct SparseMatrix {
     return {dimensions, rows, cols, vals};
   }
 
-  /// @brief Load a Matrix Market (`.mtx`) file into a COO matrix.
+  /// @brief Load a Matrix Market (`.mtx`) file into a COUP matrix.
   /// @param path Path to the `.mtx` file.
   /// @return Sparse matrix with entries in file order (0-based indices).
   /// @note Only available when `Format` is `COOFormat`.
