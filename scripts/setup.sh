@@ -2,19 +2,19 @@
 #
 # Configure GreenPeas CUDA build.
 #
-# Usage: source environment/setup.sh <sm_architectures>
+# Usage: source scripts/setup.sh <sm_architectures>
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  echo "error: source this script, e.g. 'source environment/setup.sh 86'" >&2
+  echo "error: source this script, e.g. 'source scripts/setup.sh 86'" >&2
   exit 1
 fi
 
 sm_architectures="${1:-}"
 
 if [[ -z "${sm_architectures}" ]]; then
-  echo "usage: source environment/setup.sh <sm_architectures>" >&2
-  echo "  e.g. source environment/setup.sh 86    # Ampere" >&2
-  echo "       source environment/setup.sh 100   # Blackwell" >&2
+  echo "usage: source scripts/setup.sh <sm_architectures>" >&2
+  echo "  e.g. source scripts/setup.sh 86    # Ampere" >&2
+  echo "       source scripts/setup.sh 100   # Blackwell" >&2
   return 1
 fi
 
