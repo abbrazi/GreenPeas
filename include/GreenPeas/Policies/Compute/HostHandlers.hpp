@@ -11,18 +11,14 @@
 
 namespace gp {
 
-/// @brief
 using HostGraphView = GraphView;
 
-/// @brief
 template <typename ValueT>
 using HostMatrixView = MatrixView<uint32_t, ValueT, RowMajorLayout>;
 
-/// @brief
 template <typename ValueT>
 using HostScalarView = ScalarView<ValueT>;
 
-/// @brief
 template <typename ValueT>
 using HostVectorView = VectorView<uint32_t, ValueT>;
 

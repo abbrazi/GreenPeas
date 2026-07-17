@@ -16,14 +16,6 @@
 
 namespace gp {
 
-/// @brief
-/// @tparam Handler
-/// @param graph
-/// @param numLayers
-/// @param numNodesPerLayer
-/// @param numWordsPerNode
-/// @param handle
-/// @return
 template <typename Handler>
 GLOBAL void backwardsLayerTraversalKernel(CUDAGraphView graph,
                                           uint32_t numLayers,
@@ -52,11 +44,6 @@ GLOBAL void backwardsLayerTraversalKernel(CUDAGraphView graph,
   }
 }
 
-/// @brief
-/// @tparam Handler
-/// @param numNodes
-/// @param handle
-/// @return
 template <typename Handler>
 GLOBAL void monolithicTraversalKernel(uint32_t numNodes, Handler handle) {
   const uint32_t node = blockIdx.x * blockDim.x + threadIdx.x;
@@ -66,14 +53,6 @@ GLOBAL void monolithicTraversalKernel(uint32_t numNodes, Handler handle) {
   }
 }
 
-/// @brief
-/// @tparam ValueT
-/// @param from
-/// @param to
-/// @param newRows
-/// @param numRows
-/// @param numCols
-/// @return
 template <typename ValueT>
 GLOBAL void scatterKernel(CUDAMatrixView<ValueT> from,
                           CUDAMatrixView<ValueT> to,
@@ -88,14 +67,6 @@ GLOBAL void scatterKernel(CUDAMatrixView<ValueT> from,
   }
 }
 
-/// @brief
-/// @tparam ValueT
-/// @param from
-/// @param to
-/// @param oldRows
-/// @param numRows
-/// @param numCols
-/// @return
 template <typename ValueT>
 GLOBAL void gatherKernel(CUDAMatrixView<ValueT> from,
                          CUDAMatrixView<ValueT> to,
@@ -110,13 +81,6 @@ GLOBAL void gatherKernel(CUDAMatrixView<ValueT> from,
   }
 }
 
-/// @brief
-/// @tparam ValueT
-/// @param from
-/// @param to
-/// @param newIndices
-/// @param size
-/// @return
 template <typename ValueT>
 GLOBAL void scatterKernel(CUDAVectorView<ValueT> from,
                           CUDAVectorView<ValueT> to,
@@ -129,13 +93,6 @@ GLOBAL void scatterKernel(CUDAVectorView<ValueT> from,
   }
 }
 
-/// @brief
-/// @tparam ValueT
-/// @param from
-/// @param to
-/// @param oldIndices
-/// @param size
-/// @return
 template <typename ValueT>
 GLOBAL void gatherKernel(CUDAVectorView<ValueT> from,
                          CUDAVectorView<ValueT> to,
@@ -148,16 +105,7 @@ GLOBAL void gatherKernel(CUDAVectorView<ValueT> from,
   }
 }
 
-/// @brief
 struct CUDACompute {
-  /// @brief
-  /// @tparam Handler
-  /// @param graph
-  /// @param numLayers
-  /// @param numNodesPerLayer
-  /// @param numWordsPerNode
-  /// @param handle
-  /// @return
   template <typename Handler>
   HOST static void backwardLayerTraversal(CUDAGraphView graph,
                                           uint32_t numLayers,
@@ -183,11 +131,6 @@ struct CUDACompute {
                                 kernelArgs);
   }
 
-  /// @brief
-  /// @tparam Handler
-  /// @param numNodes
-  /// @param handle
-  /// @return
   template <typename Handler>
   HOST static void monolithicTraversal(uint32_t numNodes, Handler handle) {
     int threadsPerBlock = 256;
@@ -196,14 +139,6 @@ struct CUDACompute {
     monolithicTraversalKernel<<<blocks, threadsPerBlock>>>(numNodes, handle);
   }
 
-  /// @brief
-  /// @tparam ValueT
-  /// @param from
-  /// @param to
-  /// @param newRows
-  /// @param numRows
-  /// @param numCols
-  /// @return
   template <typename ValueT>
   HOST static void scatter(CUDAMatrixView<ValueT> from,
                            CUDAMatrixView<ValueT> to,
@@ -217,14 +152,6 @@ struct CUDACompute {
     scatterKernel<<<gridSize, blockSize>>>(from, to, newRows, numRows, numCols);
   }
 
-  /// @brief
-  /// @tparam ValueT
-  /// @param from
-  /// @param to
-  /// @param oldRows
-  /// @param numRows
-  /// @param numCols
-  /// @return
   template <typename ValueT>
   HOST static void gather(CUDAMatrixView<ValueT> from,
                           CUDAMatrixView<ValueT> to,
@@ -238,13 +165,6 @@ struct CUDACompute {
     gatherKernel<<<gridSize, blockSize>>>(from, to, oldRows, numRows, numCols);
   }
 
-  /// @brief
-  /// @tparam ValueT
-  /// @param from
-  /// @param to
-  /// @param newIndices
-  /// @param size
-  /// @return
   template <typename ValueT>
   HOST static void scatter(CUDAVectorView<ValueT> from,
                            CUDAVectorView<ValueT> to,
@@ -256,13 +176,6 @@ struct CUDACompute {
     scatterKernel<<<blocks, threadsPerBlock>>>(from, to, newIndices, size);
   }
 
-  /// @brief
-  /// @tparam ValueT
-  /// @param from
-  /// @param to
-  /// @param oldIndices
-  /// @param size
-  /// @return
   template <typename ValueT>
   HOST static void gather(CUDAVectorView<ValueT> from,
                           CUDAVectorView<ValueT> to,
@@ -274,17 +187,6 @@ struct CUDACompute {
     gatherKernel<<<blocks, threadsPerBlock>>>(from, to, oldIndices, size);
   }
 
-  /// @brief
-  /// @tparam KeyT
-  /// @tparam ValT
-  /// @param keysA
-  /// @param keysB
-  /// @param valsA
-  /// @param valsB
-  /// @param numItems
-  /// @param scratch
-  /// @param bytes
-  /// @return
   template <typename KeyT, typename ValT>
   HOST static void sort(CUDAVectorView<KeyT> &keysA,
                         CUDAVectorView<KeyT> &keysB,
@@ -309,23 +211,6 @@ struct CUDACompute {
     valsB.data = vals.Alternate();
   }
 
-  /// @brief
-  /// @tparam KeyT
-  /// @tparam ValT
-  /// @tparam ExtT
-  /// @tparam Handler
-  /// @param keysA
-  /// @param keysB
-  /// @param valsA
-  /// @param valsB
-  /// @param extsA
-  /// @param extsB
-  /// @param numRuns
-  /// @param handler
-  /// @param numItems
-  /// @param scratch
-  /// @param bytes
-  /// @return
   template <typename KeyT, typename ValT, typename ExtT, typename Handler>
   HOST static void reduce(CUDAVectorView<KeyT> &keysA,
                           CUDAVectorView<KeyT> &keysB,
@@ -356,13 +241,6 @@ struct CUDACompute {
                                    numItems);
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numNodes
-  /// @param sortBytes
-  /// @param reduceBytes
-  /// @return
   template <typename Worldview>
   HOST static auto getScratchpadSize(Worldview view,
                                      uint32_t numNodes,
@@ -393,12 +271,6 @@ struct CUDACompute {
     return static_cast<uint32_t>(std::max(sortBytes, reduceBytes));
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numMeasurements
-  /// @param numWordsPerNode
-  /// @return
   template <typename Worldview>
   HOST static void scatterInitialSensitivities(Worldview view,
                                                uint32_t numMeasurements,
@@ -410,13 +282,6 @@ struct CUDACompute {
             numWordsPerNode);
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numLayers
-  /// @param numNodesPerLayer
-  /// @param numWordsPerNode
-  /// @return
   template <typename Worldview>
   HOST static void genSensitivities(Worldview view,
                                     uint32_t numLayers,
@@ -429,12 +294,6 @@ struct CUDACompute {
                            CUDASensitivityGenerator(view.sense.matrix));
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numNodes
-  /// @param numWordsPerNode
-  /// @return
   template <typename Worldview>
   HOST static void genErrorClasses(Worldview view,
                                    uint32_t numNodes,
@@ -447,12 +306,6 @@ struct CUDACompute {
                                                   numWordsPerNode));
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numNodes
-  /// @param sortBytes
-  /// @return
   template <typename Worldview>
   HOST static void
   sortErrorClasses(Worldview &view, uint32_t numNodes, size_t sortBytes) {
@@ -465,11 +318,6 @@ struct CUDACompute {
          sortBytes);
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numNodes
-  /// @return
   template <typename Worldview>
   HOST static void permuteErrorProbabilities(Worldview view,
                                              uint32_t numNodes) {
@@ -479,12 +327,6 @@ struct CUDACompute {
            numNodes);
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numNodes
-  /// @param reduceBytes
-  /// @return
   template <typename Worldview>
   HOST static void
   reduceErrorClasses(Worldview view, uint32_t numNodes, size_t reduceBytes) {
@@ -501,12 +343,6 @@ struct CUDACompute {
            reduceBytes);
   }
 
-  /// @brief
-  /// @tparam Worldview
-  /// @param view
-  /// @param numClasses
-  /// @param maxClassSize
-  /// @return
   template <typename Worldview>
   HOST static void gatherFinalErrorClasses(Worldview view,
                                            uint32_t numClasses,

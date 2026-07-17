@@ -8,54 +8,37 @@
 
 namespace gp {
 
-/// @brief Non-owning view passed to compute backends.
 template <typename Layout>
 struct DriverView {
-  /// @brief
   GraphView graph;
 
-  /// @brief
   SensitivityWorkspaceView<Layout> sense;
 
-  /// @brief
   ErrorWorkspaceView<Layout> error;
 
-  /// @brief
   ScratchpadView scratchpad;
 };
 
-/// @brief
-/// @tparam Storage
-/// @tparam Compute
-/// @tparam Layout
 template <typename Storage,
           typename Compute,
           typename Layout,
           CorrelationLevel Level,
           size_t W = 32>
 struct Driver {
-  /// @brief
   Graph<Storage> graph;
 
-  /// @brief
   SensitivityWorkspace<Storage, Layout> sense;
 
-  /// @brief
   ErrorWorkspace<Storage, Layout, W> error;
 
-  /// @brief
   HypergraphWorkspace<Layout, W> model;
 
-  /// @brief
   size_t sortBytes{};
 
-  /// @brief
   size_t reduceBytes{};
 
-  /// @brief
   Scratchpad<Storage> scratchpad;
 
-  /// @brief
   HOST explicit Driver(CircuitParameters<Level> parameters)
       : graph(parameters.numNodes()), sense(parameters.numNodes(),
                                             parameters.numMeasurements,
@@ -63,8 +46,6 @@ struct Driver {
         error(parameters.numNodes()), model(parameters.numNodes()),
         scratchpad(getScratchpadSize()) {}
 
-  /// @brief
-  /// @return
   HOST auto getView() -> DriverView<Layout> {
     return {graph.getView(),
             sense.getView(),
@@ -72,8 +53,6 @@ struct Driver {
             scratchpad.getView()};
   }
 
-  /// @brief
-  /// @return
   HOST auto getScratchpadSize() -> uint32_t {
     auto view = getView();
 
@@ -81,14 +60,11 @@ struct Driver {
                                       reduceBytes);
   }
 
-  /// @brief
   HOST void reset() {
     sense.clear();
     error.clear();
   }
 
-  /// @brief Fit buffers to circuit parameters.
-  /// @param parameters Circuit parameters.
   HOST void fitto(CircuitParameters<Level> parameters) {
     graph.fitto(parameters.numNodes());
     sense.fitto(parameters.numNodes(),
@@ -99,8 +75,6 @@ struct Driver {
     scratchpad.fitto(getScratchpadSize());
   }
 
-  /// @brief
-  /// @return
   HOST void runComputePipeline(CircuitParameters<Level> parameters) {
     auto world = getView();
 
@@ -122,8 +96,6 @@ struct Driver {
     Compute::gatherFinalErrorClasses(world, model.numClasses, W);
   }
 
-  /// @brief
-  /// @return
   HOST void compile(const Circuit<Layout, Level> &circuit) {
     // 0. Reset persistent state
     reset();
@@ -150,8 +122,6 @@ struct Driver {
     error.probabilities.a.copyTo(model.probabilities);
   }
 
-  /// @brief
-  /// @return
   HOST auto getDEM(uint32_t numDetectors) -> stim::DetectorErrorModel {
     auto getTarget = [&](uint32_t d) {
       return d >= numDetectors
@@ -178,15 +148,12 @@ struct Driver {
     return dem;
   }
 
-  /// @brief
-  /// @return
   HOST auto compile(const stim::Circuit &circuit) -> stim::DetectorErrorModel {
     auto native = Circuit<Layout, Level>::fromStimCircuit(circuit);
     compile(native);
     return getDEM(native.parameters.numDetectors);
   }
 
-  /// @brief
   HOST static auto fromStimCircuit(const stim::Circuit &circuit) -> Driver<Storage, Compute, Layout, Level, W> {
     CircuitParameters<Level> parameters;
 

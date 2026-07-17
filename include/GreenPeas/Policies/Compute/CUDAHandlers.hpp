@@ -16,31 +16,20 @@
 
 namespace gp {
 
-/// @brief
 using CUDAGraphView = GraphView;
 
-/// @brief
 template <typename ValueT>
 using CUDAMatrixView = MatrixView<uint32_t, ValueT, ColMajorLayout>;
 
-/// @brief
 template <typename ValueT>
 using CUDAScalarView = ScalarView<ValueT>;
 
-/// @brief
 template <typename ValueT>
 using CUDAVectorView = VectorView<uint32_t, ValueT>;
 
-/// @brief
 struct CUDASensitivityGenerator {
-  /// @brief
   CUDAMatrixView<uint64_t> sensitivities;
 
-  /// @brief
-  /// @param node
-  /// @param word
-  /// @param neighbors
-  /// @return
   DEVICE FORCE_INLINE void
   operator()(uint32_t node, uint32_t word, uint64_t neighbors) const {
     const uint32_t n0 = getLower(neighbors);
@@ -59,27 +48,18 @@ struct CUDASensitivityGenerator {
   }
 };
 
-/// @brief
 template <size_t W = 32>
 struct CUDAErrorClassGenerator {
-  /// @brief
   CUDAMatrixView<uint64_t> sensitivities;
 
-  /// @brief
   CUDAMatrixView<uint32_t> classes;
 
-  /// @brief
   CUDAVectorView<uint64_t> hashes;
 
-  /// @brief
   CUDAVectorView<uint32_t> indices;
 
-  /// @brief
   uint32_t numWordsPerNode;
 
-  /// @brief
-  /// @param node
-  /// @return
   DEVICE auto getClass(uint32_t node) const -> Array<uint32_t, W> {
     Array<uint32_t, W> cls;
     uint32_t i = 0;
@@ -103,9 +83,6 @@ struct CUDAErrorClassGenerator {
     return cls;
   }
 
-  /// @brief
-  /// @param node
-  /// @return
   DEVICE FORCE_INLINE void operator()(uint32_t node) const {
     auto cls = getClass(node);
 
@@ -119,15 +96,9 @@ struct CUDAErrorClassGenerator {
   }
 };
 
-/// @brief
 struct CUDAErrorClassReducer {
-  /// @brief
   using T = thrust::tuple<uint32_t, double>;
 
-  /// @brief
-  /// @param a
-  /// @param b
-  /// @return
   DEVICE FORCE_INLINE auto operator()(const T &a, const T &b) const -> T {
     auto p0 = thrust::get<1>(a);
     auto p1 = thrust::get<1>(b);
