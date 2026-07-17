@@ -6,7 +6,9 @@ GreenPeas builds DEMs just-in-time so decoders can track mid-circuit branching a
 
 It is orders of magnitude faster than standard CPU methods (see [paper](https://arxiv.org/abs/2604.16613)).
 
-<img src="data/images/stim_comparison.png" width="650" alt="Speedup of GreenPeas vs Stim">
+<p align="center">
+  <img src="data/images/stim_comparison.png" width="650" alt="Speedup of GreenPeas vs Stim">
+</p>
 
 ## Quick start
 
