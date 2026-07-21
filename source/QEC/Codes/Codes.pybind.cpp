@@ -1,15 +1,8 @@
 #include "GreenPeas/QEC/Codes/Codes.pybind.hpp"
 #include "GreenPeas/QEC/Codes/Code.hpp"
+#include "GreenPeas/QEC/Shims/Stim.pybind.hpp"
 
 namespace py = pybind11;
-
-namespace {
-
-auto toPython(const stim::Circuit &circuit) -> py::object {
-  return py::module_::import("stim").attr("Circuit")(circuit.str());
-}
-
-} // namespace
 
 namespace gp::pybind {
 
@@ -22,8 +15,7 @@ void bindCodes(py::module_ &codes) {
          uint32_t rounds,
          double p,
          bool include_x_detectors) {
-        const auto circuit = code.getMemory(rounds, p, include_x_detectors);
-        return toPython(circuit);
+        return circuitToPython(code.getMemory(rounds, p, include_x_detectors));
       },
       py::arg("rounds"),
       py::arg("p"),

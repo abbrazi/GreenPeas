@@ -1,12 +1,12 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
-find_package(pybind11 CONFIG QUIET)
+find_package(pybind11 2.11.1 CONFIG QUIET)
 if(NOT pybind11_FOUND)
   include(FetchContent)
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG v2.13.6
+    GIT_TAG v2.11.1
   )
   FetchContent_MakeAvailable(pybind11)
 endif()
@@ -18,6 +18,9 @@ set(GPPY_SOURCES
 )
 
 pybind11_add_module(_gppy ${GPPY_SOURCES})
+
+# Match pip stim's pybind11 build ABI so casts work across modules.
+target_compile_definitions(_gppy PRIVATE "PYBIND11_BUILD_ABI=\"_cxxabi1014\"")
 
 target_link_libraries(_gppy PRIVATE libgp)
 

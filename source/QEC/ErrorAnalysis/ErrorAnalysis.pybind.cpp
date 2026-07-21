@@ -7,6 +7,7 @@
 #include "GreenPeas/Policies/Data/Layout.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Driver.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Mixer.hpp"
+#include "GreenPeas/QEC/Shims/Stim.pybind.hpp"
 
 #include "GreenPeas/Policies/Compute/Host.hpp"
 #include "GreenPeas/Policies/Storage/Host.hpp"
@@ -21,14 +22,6 @@ using HostDriver = Driver<HostStorage, HostCompute, RowMajorLayout, Level>;
 using HostDriverVariant = std::variant<HostDriver<CorrelationLevel::L0>,
                                        HostDriver<CorrelationLevel::L1>,
                                        HostDriver<CorrelationLevel::L2>>;
-
-auto fromPython(const py::object &circuit) -> stim::Circuit {
-  return stim::Circuit(py::str(circuit).cast<std::string>());
-}
-
-auto toPython(const stim::DetectorErrorModel &dem) -> py::object {
-  return py::module_::import("stim").attr("DetectorErrorModel")(dem.str());
-}
 
 auto getDriver(const stim::Circuit &circuit, CorrelationLevel level)
     -> std::unique_ptr<HostDriverVariant> {
@@ -63,8 +56,8 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
       .def(
           "compile_detector_error_model",
           [](HostDriverVariant &driver, const py::object &circuit) {
-            return toPython(std::visit(
-                [&](auto &d) { return d.compile(fromPython(circuit)); },
+            return demToPython(std::visit(
+                [&](auto &d) { return d.compile(circuitFromPython(circuit)); },
                 driver));
           },
           py::arg("circuit"));
@@ -72,7 +65,7 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
   error_analysis.def(
       "get_driver",
       [](const py::object &circuit, CorrelationLevel correlation_level) {
-        return getDriver(fromPython(circuit), correlation_level);
+        return getDriver(circuitFromPython(circuit), correlation_level);
       },
       py::arg("circuit"),
       py::arg("correlation_level") = CorrelationLevel::L2);
