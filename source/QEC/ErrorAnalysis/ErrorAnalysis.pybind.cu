@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "GreenPeas/Policies/Data/Layout.hpp"
+#include "GreenPeas/QEC/Shims/Stim.pybind.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Driver.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Mixer.hpp"
 
@@ -16,21 +17,14 @@ namespace py = pybind11;
 namespace gp {
 
 template <CorrelationLevel Level>
-using CUDADriver =Driver<CUDAStorage, CUDACompute, ColMajorLayout, Level>;
+using CUDADriver = Driver<CUDAStorage, CUDACompute, ColMajorLayout, Level>;
 
 using CUDADriverVariant = std::variant<CUDADriver<CorrelationLevel::L0>,
-                                           CUDADriver<CorrelationLevel::L1>,
-                                           CUDADriver<CorrelationLevel::L2>>;
+                                       CUDADriver<CorrelationLevel::L1>,
+                                       CUDADriver<CorrelationLevel::L2>>;
 
-auto fromPython(const py::object &circuit) -> stim::Circuit {
-  return stim::Circuit(py::str(circuit).cast<std::string>());
-}
-
-auto toPython(const stim::DetectorErrorModel &dem) -> py::object {
-  return py::module_::import("stim").attr("DetectorErrorModel")(dem.str());
-}
-
-auto getDriver(const stim::Circuit &circuit, CorrelationLevel level) -> std::unique_ptr<CUDADriverVariant> {
+auto getDriver(const stim::Circuit &circuit, CorrelationLevel level)
+    -> std::unique_ptr<CUDADriverVariant> {
   switch (level) {
   case CorrelationLevel::L0:
     return std::make_unique<CUDADriverVariant>(
@@ -57,12 +51,15 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
       .value("L2", CorrelationLevel::L2)
       .export_values();
 
-  py::class_<CUDADriverVariant, std::unique_ptr<CUDADriverVariant>>(error_analysis, "Driver")
+  py::class_<CUDADriverVariant, std::unique_ptr<CUDADriverVariant>>(
+      error_analysis, "Driver")
       .def(
           "compile_detector_error_model",
           [](CUDADriverVariant &driver, const py::object &circuit) {
-            return toPython(std::visit(
-                [&](auto &d) { return d.compile(fromPython(circuit)); },
+            return demToPython(std::visit(
+                [&](auto &d) {
+                  return d.compile(circuitFromPython(circuit));
+                },
                 driver));
           },
           py::arg("circuit"));
@@ -70,7 +67,7 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
   error_analysis.def(
       "get_driver",
       [](const py::object &circuit, CorrelationLevel correlation_level) {
-        return getDriver(fromPython(circuit), correlation_level);
+        return getDriver(circuitFromPython(circuit), correlation_level);
       },
       py::arg("circuit"),
       py::arg("correlation_level") = CorrelationLevel::L2);
