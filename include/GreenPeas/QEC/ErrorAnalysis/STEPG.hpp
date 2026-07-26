@@ -72,6 +72,12 @@ struct STEPG {
     probs.fitto(numNodes);
   }
 
+  /// @brief Reset the graph and clear the error node probabilities.
+  HOST void reset() {
+    graph.reset();
+    probs.clear();
+  }
+
   /// @brief Add a flow (directed edge) from a source to a target node.
   /// @param sourceCoord Source s-t coordinate.
   /// @param targetCoord Target s-t coordinate.

@@ -118,6 +118,9 @@ struct Graph {
     adjacencies.copyFrom(other.adjacencies);
   }
 
+  /// @brief Reset the graph by setting all adjacency entries to the sentinel.
+  HOST void reset() { adjacencies.set(); }
+
   /// @brief Get a non-owning view of the graph.
   /// @return GraphView The non-owning view.
   HOST auto getView() -> GraphView { return {numNodes, adjacencies.getView()}; }
