@@ -44,6 +44,19 @@ static void testSTEPGFittoOk() {
   REQUIRE(stepg.probs.maxSize == 16);
 }
 
+static void testSTEPGResetResetsGraphAndProbs() {
+  STEPG stepg(3, 3);
+
+  stepg.addFlow({0, 0}, {0, 1});
+  stepg.probs[0] = 0.5;
+
+  stepg.reset();
+
+  REQUIRE(getLower(stepg.graph[0]) == UINT32_MAX);
+  REQUIRE(getUpper(stepg.graph[0]) == UINT32_MAX);
+  REQUIRE(stepg.probs[0] == 0.0);
+}
+
 static void testSTEPGAddFlowUpdatesGraph() {
   STEPG stepg(4, 4);
 
@@ -209,6 +222,9 @@ auto main() -> int {
 
   // STEPG::fitto
   testSTEPGFittoOk();
+
+  // STEPG::reset
+  testSTEPGResetResetsGraphAndProbs();
 
   // STEPG::addFlow
   testSTEPGAddFlowUpdatesGraph();

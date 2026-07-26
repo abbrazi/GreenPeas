@@ -57,7 +57,10 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
           "compile_detector_error_model",
           [](HostDriverVariant &driver, const py::object &circuit) {
             return demToPython(std::visit(
-                [&](auto &d) { return d.compile(circuitFromPython(circuit)); },
+                [&](auto &d) {
+                  return d.compileDetectorErrorModel(
+                      circuitFromPython(circuit));
+                },
                 driver));
           },
           py::arg("circuit"));

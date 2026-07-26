@@ -1,6 +1,9 @@
 #ifndef GREENPEAS_QEC_ERRORANALYSIS_DRIVER_HPP
 #define GREENPEAS_QEC_ERRORANALYSIS_DRIVER_HPP
 
+/// Standard headers
+#include <utility>
+
 /// Project headers
 #include "GreenPeas/Core/Graph.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Circuit.hpp"
@@ -25,6 +28,8 @@ template <typename Storage,
           CorrelationLevel Level,
           size_t W = 32>
 struct Driver {
+  Circuit<Layout, Level> circuit;
+
   Graph<Storage> graph;
 
   SensitivityWorkspace<Storage, Layout> sense;
@@ -39,11 +44,13 @@ struct Driver {
 
   Scratchpad<Storage> scratchpad;
 
-  HOST explicit Driver(CircuitParameters<Level> parameters)
-      : graph(parameters.numNodes()), sense(parameters.numNodes(),
-                                            parameters.numMeasurements,
-                                            parameters.numWordsPerNode()),
-        error(parameters.numNodes()), model(parameters.numNodes()),
+  HOST explicit Driver(Circuit<Layout, Level> circuit)
+      : circuit(std::move(circuit)), graph(this->circuit.parameters.numNodes()),
+        sense(this->circuit.parameters.numNodes(),
+              this->circuit.parameters.numMeasurements,
+              this->circuit.parameters.numWordsPerNode()),
+        error(this->circuit.parameters.numNodes()),
+        model(this->circuit.parameters.numNodes()),
         scratchpad(getScratchpadSize()) {}
 
   HOST auto getView() -> DriverView<Layout> {
@@ -96,7 +103,7 @@ struct Driver {
     Compute::gatherFinalErrorClasses(world, model.numClasses, W);
   }
 
-  HOST void compile(const Circuit<Layout, Level> &circuit) {
+  HOST void compile() {
     // 0. Reset persistent state
     reset();
 
@@ -122,7 +129,9 @@ struct Driver {
     error.probabilities.a.copyTo(model.probabilities);
   }
 
-  HOST auto getDEM(uint32_t numDetectors) -> stim::DetectorErrorModel {
+  HOST auto getDetectorErrorModel() -> stim::DetectorErrorModel {
+    const uint32_t numDetectors = circuit.parameters.numDetectors;
+
     auto getTarget = [&](uint32_t d) {
       return d >= numDetectors
                  ? stim::DemTarget::observable_id(d - numDetectors)
@@ -148,25 +157,15 @@ struct Driver {
     return dem;
   }
 
-  HOST auto compile(const stim::Circuit &circuit) -> stim::DetectorErrorModel {
-    auto native = Circuit<Layout, Level>::fromStimCircuit(circuit);
-    compile(native);
-    return getDEM(native.parameters.numDetectors);
+  HOST auto compileDetectorErrorModel(const stim::Circuit &stimCircuit)
+      -> stim::DetectorErrorModel {
+    circuit.parseFromStimCircuit(stimCircuit);
+    compile();
+    return getDetectorErrorModel();
   }
 
-  HOST static auto fromStimCircuit(const stim::Circuit &circuit)
-      -> Driver<Storage, Compute, Layout, Level, W> {
-    CircuitParameters<Level> parameters;
-
-    const auto stats = circuit.compute_stats();
-
-    parameters.numQubits = stats.num_qubits;
-    parameters.numLayers = stats.num_ticks + 1;
-    parameters.numMeasurements = stats.num_measurements;
-    parameters.numDetectors = stats.num_detectors;
-    parameters.numObservables = stats.num_observables;
-
-    return Driver<Storage, Compute, Layout, Level, W>(parameters);
+  HOST static auto fromStimCircuit(const stim::Circuit &stimCircuit) -> Driver {
+    return Driver(Circuit<Layout, Level>::fromStimCircuit(stimCircuit));
   }
 };
 

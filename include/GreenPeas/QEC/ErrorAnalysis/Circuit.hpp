@@ -58,6 +58,22 @@ struct CircuitParameters {
   HOST constexpr auto numWordsPerNode() const -> uint32_t {
     return numWordsForBits(numDetectors + numObservables);
   }
+
+  /// @brief Build circuit parameters from Stim circuit stats.
+  /// @param stats Stim circuit stats.
+  /// @return Circuit parameters derived from `stats`.
+  HOST static auto fromStimCircuitStats(const stim::CircuitStats &stats)
+      -> CircuitParameters {
+    CircuitParameters parameters;
+
+    parameters.numQubits = stats.num_qubits;
+    parameters.numLayers = stats.num_ticks + 1;
+    parameters.numMeasurements = stats.num_measurements;
+    parameters.numDetectors = stats.num_detectors;
+    parameters.numObservables = stats.num_observables;
+
+    return parameters;
+  }
 };
 
 /// @brief Non-owning view of a circuit sensitivity matrix.
@@ -166,6 +182,9 @@ struct CircuitCounters {
 
   /// @brief Detector counter.
   uint32_t detector = 0;
+
+  /// @brief Reset all counters to their defaults.
+  HOST void reset() { *this = {}; }
 };
 
 /// @brief Syndrome measurement (SM) circuit.
@@ -193,6 +212,22 @@ struct Circuit {
         stepg(parameters.numLayers, parameters.numNodesPerLayer()),
         sensitivityMap(parameters.numMeasurements,
                        parameters.numWordsPerNode()) {}
+
+  /// @brief Fit new circuit parameters.
+  /// @param newParameters New circuit parameters.
+  HOST void fitto(CircuitParameters<Level> newParameters) {
+    parameters = newParameters;
+    stepg.fitto(parameters.numLayers, parameters.numNodesPerLayer());
+    sensitivityMap.fitto(parameters.numMeasurements,
+                         parameters.numWordsPerNode());
+  }
+
+  /// @brief Reset STEPG, sensitivity map, and counters for reuse.
+  HOST void reset() {
+    stepg.reset();
+    sensitivityMap.clear();
+    counters.reset();
+  }
 
   /// @brief Apply a gate function to each qubit target.
   /// @tparam ApplyGateFunction Callable `(uint32_t qubit)`.
@@ -417,29 +452,25 @@ struct Circuit {
     Mixer<Level>::initialise(stepg, parameters.numQubits, parameters.numLayers);
   }
 
+  /// @brief Parse a Stim circuit into the circuit's existing buffers.
+  /// @param circuit Input Stim circuit (must fit within current capacity).
+  HOST void parseFromStimCircuit(const stim::Circuit &circuit) {
+    fitto(CircuitParameters<Level>::fromStimCircuitStats(
+        circuit.compute_stats()));
+    reset();
+    initialise();
+    circuit.for_each_operation(
+        [&](const stim::CircuitInstruction &op) { applyOp(op); });
+  }
+
   /// @brief Build a SM circuit from a Stim circuit.
   /// @param circuit Input Stim circuit.
   /// @return Parsed SM circuit with STEPG and initial sensitivities.
-  HOST static auto fromStimCircuit(const stim::Circuit &circuit)
-      -> Circuit<Layout, Level> {
-    CircuitParameters<Level> parameters;
-
-    const auto stats = circuit.compute_stats();
-
-    parameters.numQubits = stats.num_qubits;
-    parameters.numLayers = stats.num_ticks + 1;
-    parameters.numMeasurements = stats.num_measurements;
-    parameters.numDetectors = stats.num_detectors;
-    parameters.numObservables = stats.num_observables;
-
-    Circuit<Layout, Level> nativeCircuit(parameters);
-
-    nativeCircuit.initialise();
-
-    circuit.for_each_operation(
-        [&](const stim::CircuitInstruction &op) { nativeCircuit.applyOp(op); });
-
-    return nativeCircuit;
+  HOST static auto fromStimCircuit(const stim::Circuit &circuit) -> Circuit {
+    Circuit native(CircuitParameters<Level>::fromStimCircuitStats(
+        circuit.compute_stats()));
+    native.parseFromStimCircuit(circuit);
+    return native;
   }
 };
 

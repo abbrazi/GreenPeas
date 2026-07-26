@@ -122,6 +122,19 @@ static void testGraphCopyFromThrowsOnNumNodesMismatch() {
   REQUIRE(threw);
 }
 
+static void testGraphResetResetsAdjacencies() {
+  HostGraph graph(3);
+  setLower(graph[0], 1);
+  setUpper(graph[0], 2);
+  setLower(graph[2], 3);
+  setUpper(graph[2], 4);
+  graph.reset();
+  REQUIRE(getLower(graph[0]) == UINT32_MAX);
+  REQUIRE(getUpper(graph[0]) == UINT32_MAX);
+  REQUIRE(getLower(graph[2]) == UINT32_MAX);
+  REQUIRE(getUpper(graph[2]) == UINT32_MAX);
+}
+
 static void testGraphGetView() {
   HostGraph graph(2);
   setLower(graph[0], 42);
@@ -300,6 +313,9 @@ auto main() -> int {
   // Graph::copyFrom
   testGraphCopyFromHost();
   testGraphCopyFromThrowsOnNumNodesMismatch();
+
+  // Graph::reset
+  testGraphResetResetsAdjacencies();
 
   // Graph::getView
   testGraphGetView();
