@@ -45,16 +45,19 @@ struct CircuitParameters {
   }
 
   /// @brief Number of error nodes per layer.
+  /// @return `numQubits * Mixer<Level>::numNodesPerQubit`.
   HOST constexpr auto numNodesPerLayer() const -> uint32_t {
     return numQubits * Mixer<Level>::numNodesPerQubit;
   }
 
   /// @brief Total number of error nodes in the circuit.
+  /// @return `numLayers * numNodesPerLayer()`.
   HOST constexpr auto numNodes() const -> uint32_t {
     return numLayers * numNodesPerLayer();
   }
 
   /// @brief Number of 64-bit sensitivity words per error node.
+  /// @return `numWordsForBits(numDetectors + numObservables)`.
   HOST constexpr auto numWordsPerNode() const -> uint32_t {
     return numWordsForBits(numDetectors + numObservables);
   }
@@ -283,6 +286,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim DETECTOR instruction.
+  /// @param op Stim DETECTOR instruction.
   HOST auto applyDetector(const stim::CircuitInstruction &op) {
     const uint32_t col = counters.detector / 64;
     const uint32_t bit = counters.detector % 64;
@@ -297,11 +301,13 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim OBSERVABLE_INCLUDE instruction.
+  /// @param op Stim OBSERVABLE_INCLUDE instruction.
   HOST void applyObservableInclude(const stim::CircuitInstruction &op) {
     applyDetector(op);
   }
 
   /// @brief Apply a Stim TICK instruction.
+  /// @param op Stim TICK instruction.
   HOST void applyTick(const stim::CircuitInstruction &op) { counters.layer++; }
 
   /// @brief Apply Z-basis measurement on qubit @p q with flip probability @p p.
@@ -313,6 +319,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim M instruction.
+  /// @param op Stim M instruction.
   HOST auto applyM(const stim::CircuitInstruction &op) {
     applyToEach(
         op.targets, op.args[0], [this](uint32_t qubit, double probability) {
@@ -327,6 +334,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim R instruction.
+  /// @param op Stim R instruction.
   HOST void applyR(const stim::CircuitInstruction &op) {
     applyToEach(op.targets,
                 [this](uint32_t qubit) { return this->applyR(qubit); });
@@ -340,6 +348,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim CX instruction.
+  /// @param op Stim CX instruction.
   HOST void applyCX(const stim::CircuitInstruction &op) {
     applyToEachPair(op.targets, [this](uint32_t control, uint32_t target) {
       return this->applyCX(control, target);
@@ -353,6 +362,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim H instruction.
+  /// @param op Stim H instruction.
   HOST void applyH(const stim::CircuitInstruction &op) {
     applyToEach(op.targets,
                 [this](uint32_t qubit) { return this->applyH(qubit); });
@@ -366,6 +376,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim DEPOLARIZE1 instruction.
+  /// @param op Stim DEPOLARIZE1 instruction.
   HOST void applyDepolarize1(const stim::CircuitInstruction &op) {
     applyToEach(
         op.targets, op.args[0], [this](uint32_t qubit, double probability) {
@@ -382,6 +393,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim DEPOLARIZE2 instruction.
+  /// @param op Stim DEPOLARIZE2 instruction.
   HOST void applyDepolarize2(const stim::CircuitInstruction &op) {
     applyToEachPair(
         op.targets,
@@ -399,6 +411,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim X_ERROR instruction.
+  /// @param op Stim X_ERROR instruction.
   HOST void applyXError(const stim::CircuitInstruction &op) {
     applyToEach(
         op.targets, op.args[0], [this](uint32_t qubit, double probability) {
@@ -407,6 +420,7 @@ struct Circuit {
   }
 
   /// @brief Apply a Stim instruction.
+  /// @param op Stim circuit instruction.
   /// @throws std::invalid_argument If the gate type is unsupported.
   HOST void applyOp(const stim::CircuitInstruction &op) {
     switch (op.gate_type) {

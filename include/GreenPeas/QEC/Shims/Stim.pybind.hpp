@@ -16,6 +16,8 @@ namespace gp {
 inline void ensureStimImported() { pybind11::module_::import("stim"); }
 
 /// @brief Cast a Python stim.Circuit to a C++ stim::Circuit.
+/// @param obj Python object expected to be a `stim.Circuit`.
+/// @return Const reference to the underlying C++ circuit.
 inline auto circuitFromPython(const pybind11::object &obj)
     -> const stim::Circuit & {
   ensureStimImported();
@@ -29,6 +31,8 @@ inline auto circuitFromPython(const pybind11::object &obj)
 }
 
 /// @brief Cast a C++ Circuit to a Python stim.Circuit.
+/// @param circuit C++ Stim circuit (moved).
+/// @return Python `stim.Circuit` object.
 inline auto circuitToPython(stim::Circuit circuit) -> pybind11::object {
   ensureStimImported();
   try {
@@ -41,6 +45,8 @@ inline auto circuitToPython(stim::Circuit circuit) -> pybind11::object {
 }
 
 /// @brief Cast a C++ DetectorErrorModel to a Python stim.DetectorErrorModel.
+/// @param dem C++ Stim detector error model (moved).
+/// @return Python `stim.DetectorErrorModel` object.
 inline auto demToPython(stim::DetectorErrorModel dem) -> pybind11::object {
   ensureStimImported();
   try {
@@ -56,6 +62,7 @@ inline auto demToPython(stim::DetectorErrorModel dem) -> pybind11::object {
 /// @param shot Sparse shot.
 /// @param numDetectors Number of detectors.
 /// @param numObservables Number of observables.
+/// @return Pair of dense bool arrays `(detectors, observables)`.
 inline auto sparseShotToDenseArrays(const stim::SparseShot &shot,
                                     size_t numDetectors,
                                     size_t numObservables)

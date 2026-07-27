@@ -11,39 +11,61 @@
 
 namespace gp {
 
+/// @brief Non-owning view of driver graph, sense, error, and scratch buffers.
+/// @tparam Layout Layout policy.
 template <typename Layout>
 struct DriverView {
+  /// @brief STEPG adjacency view used by compute kernels.
   GraphView graph;
 
+  /// @brief Sensitivity workspace view.
   SensitivityWorkspaceView<Layout> sense;
 
+  /// @brief Error-class workspace view.
   ErrorWorkspaceView<Layout> error;
 
+  /// @brief Compute scratchpad view.
   ScratchpadView scratchpad;
 };
 
+/// @brief Error-analysis driver that compiles a Stim circuit to a DEM.
+/// @tparam Storage Storage policy for device/host buffers.
+/// @tparam Compute Compute policy (e.g. `CUDACompute`, `HostCompute`).
+/// @tparam Layout Layout policy.
+/// @tparam Level Correlation level.
+/// @tparam W Maximum packed class width.
 template <typename Storage,
           typename Compute,
           typename Layout,
           CorrelationLevel Level,
           size_t W = 32>
 struct Driver {
+  /// @brief Parsed syndrome-measurement circuit.
   Circuit<Layout, Level> circuit;
 
+  /// @brief Working copy of the STEPG adjacency.
   Graph<Storage> graph;
 
+  /// @brief Sensitivity map and dense matrix workspace.
   SensitivityWorkspace<Storage, Layout> sense;
 
+  /// @brief Error-class hashing and reduction workspace.
   ErrorWorkspace<Storage, Layout, W> error;
 
+  /// @brief Host-side reduced detector-error hypergraph.
   HypergraphWorkspace<Layout, W> model;
 
+  /// @brief CUB temporary storage size for radix sort.
   size_t sortBytes{};
 
+  /// @brief CUB temporary storage size for reduce-by-key.
   size_t reduceBytes{};
 
+  /// @brief Scratch buffer sized for sort/reduce.
   Scratchpad<Storage> scratchpad;
 
+  /// @brief Construct a driver around an existing SM circuit.
+  /// @param circuit Parsed syndrome-measurement circuit (moved).
   HOST explicit Driver(Circuit<Layout, Level> circuit)
       : circuit(std::move(circuit)), graph(this->circuit.parameters.numNodes()),
         sense(this->circuit.parameters.numNodes(),
@@ -53,6 +75,8 @@ struct Driver {
         model(this->circuit.parameters.numNodes()),
         scratchpad(getScratchpadSize()) {}
 
+  /// @brief Get a non-owning view of this driver's buffers.
+  /// @return DriverView sharing this driver's storage.
   HOST auto getView() -> DriverView<Layout> {
     return {graph.getView(),
             sense.getView(),
@@ -60,6 +84,8 @@ struct Driver {
             scratchpad.getView()};
   }
 
+  /// @brief Query and cache CUB scratch sizes; return max bytes needed.
+  /// @return `max(sortBytes, reduceBytes)`.
   HOST auto getScratchpadSize() -> uint32_t {
     auto view = getView();
 
@@ -67,11 +93,14 @@ struct Driver {
         view, error.hashes.a.size, sortBytes, reduceBytes);
   }
 
+  /// @brief Clear sensitivity and error workspaces for reuse.
   HOST void reset() {
     sense.clear();
     error.clear();
   }
 
+  /// @brief Resize all buffers to match @p parameters.
+  /// @param parameters Circuit parameters driving buffer sizes.
   HOST void fitto(CircuitParameters<Level> parameters) {
     graph.fitto(parameters.numNodes());
     sense.fitto(parameters.numNodes(),
@@ -82,6 +111,8 @@ struct Driver {
     scratchpad.fitto(getScratchpadSize());
   }
 
+  /// @brief Run the compute pipeline that builds reduced error classes.
+  /// @param parameters Circuit parameters for the current compile.
   HOST void runComputePipeline(CircuitParameters<Level> parameters) {
     auto world = getView();
 
@@ -103,6 +134,7 @@ struct Driver {
     Compute::gatherFinalErrorClasses(world, model.numClasses, W);
   }
 
+  /// @brief Compile `circuit` into the reduced detector-error hypergraph.
   HOST void compile() {
     // 0. Reset persistent state
     reset();
@@ -129,6 +161,8 @@ struct Driver {
     error.probabilities.a.copyTo(model.probabilities);
   }
 
+  /// @brief Build a Stim detector error model from the compiled hypergraph.
+  /// @return Stim `DetectorErrorModel` with one error per reduced class.
   HOST auto getDetectorErrorModel() -> stim::DetectorErrorModel {
     const uint32_t numDetectors = circuit.parameters.numDetectors;
 
@@ -157,6 +191,9 @@ struct Driver {
     return dem;
   }
 
+  /// @brief Parse @p stimCircuit, compile, and return its DEM.
+  /// @param stimCircuit Input Stim circuit.
+  /// @return Compiled Stim `DetectorErrorModel`.
   HOST auto compileDetectorErrorModel(const stim::Circuit &stimCircuit)
       -> stim::DetectorErrorModel {
     circuit.parseFromStimCircuit(stimCircuit);
@@ -164,6 +201,9 @@ struct Driver {
     return getDetectorErrorModel();
   }
 
+  /// @brief Construct a driver by parsing @p stimCircuit.
+  /// @param stimCircuit Input Stim circuit.
+  /// @return Driver owning the parsed SM circuit and workspaces.
   HOST static auto fromStimCircuit(const stim::Circuit &stimCircuit) -> Driver {
     return Driver(Circuit<Layout, Level>::fromStimCircuit(stimCircuit));
   }
