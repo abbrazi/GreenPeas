@@ -252,9 +252,8 @@ struct Code {
 
   /// @brief Initialise qubit IDs, schedules, and supports from loaded matrices.
   HOST void init() {
-    qubitIDs = getQubitIds(static_cast<uint32_t>(Hx.dimensions.numCols),
-                           static_cast<uint32_t>(Hx.dimensions.numRows),
-                           static_cast<uint32_t>(Hz.dimensions.numRows));
+    qubitIDs = getQubitIds(
+        Hx.dimensions.numCols, Hx.dimensions.numRows, Hz.dimensions.numRows);
 
     getCheckSupportAndSchedule(
         Hx, PauliBasis::X, qubitIDs.xChecks, checkXSupport, checkXSchedule);
