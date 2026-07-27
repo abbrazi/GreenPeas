@@ -6,6 +6,8 @@
 
 namespace gp::pybind {
 
+/// @brief Bind QEC code types into the `codes` submodule.
+/// @param codes Target pybind11 module.
 void bindCodes(pybind11::module_ &codes);
 
 } // namespace gp::pybind

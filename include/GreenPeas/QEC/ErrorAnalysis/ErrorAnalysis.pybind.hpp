@@ -6,6 +6,8 @@
 
 namespace gp::pybind {
 
+/// @brief Bind error-analysis types into the `error_analysis` submodule.
+/// @param error_analysis Target pybind11 module.
 void bindErrorAnalysis(pybind11::module_ &error_analysis);
 
 } // namespace gp::pybind

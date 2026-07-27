@@ -21,22 +21,50 @@ using Flags = std::vector<uint8_t>;
 using BlockSupport = std::vector<Qubits>;
 
 /// @brief Outer-check measurement strategy for concatenated codes.
-enum class MeasurementStrategy : uint32_t { Static = 0, Adaptive = 1 };
+enum class MeasurementStrategy : uint32_t {
+  /// Measure all outer checks every round.
+  Static = 0,
+  /// Measure outer checks selected by inner flag diffs.
+  Adaptive = 1
+};
 
 /// @brief Qubit IDs for a concatenated Iceberg + surface-code layout.
 struct ConcatenatedQubitIDs {
+  /// @brief All qubit indices.
   Qubits all;
+
+  /// @brief Physical data qubit indices.
   Qubits data;
+
+  /// @brief All check ancilla indices.
   Qubits checks;
+
+  /// @brief Inner Iceberg X-check ancillas.
   Qubits innerXChecks;
+
+  /// @brief Inner Iceberg Z-check ancillas.
   Qubits innerZChecks;
+
+  /// @brief All inner Iceberg check ancillas.
   Qubits innerChecks;
+
+  /// @brief Outer surface-code X-check ancillas.
   Qubits outerXChecks;
+
+  /// @brief Outer surface-code Z-check ancillas.
   Qubits outerZChecks;
+
+  /// @brief All outer surface-code check ancillas.
   Qubits outerChecks;
 };
 
 /// @brief Get qubit IDs for a concatenated Iceberg + surface-code layout.
+/// @param numData Number of physical data qubits.
+/// @param numInnerXChecks Number of inner Iceberg X checks.
+/// @param numInnerZChecks Number of inner Iceberg Z checks.
+/// @param numOuterXChecks Number of outer surface-code X checks.
+/// @param numOuterZChecks Number of outer surface-code Z checks.
+/// @return Contiguous concatenated qubit ID layout.
 HOST inline auto getConcatenatedQubitIds(uint32_t numData,
                                          uint32_t numInnerXChecks,
                                          uint32_t numInnerZChecks,
@@ -417,6 +445,7 @@ struct ConcatenatedSurfaceCode {
 
   /// @brief Get the head of the circuit.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for state preparation.
   HOST auto getHead(double p) -> stim::Circuit {
     stim::Circuit circuit;
     circuit.safe_append_u("R", qubitIDs.data);
@@ -429,6 +458,7 @@ struct ConcatenatedSurfaceCode {
 
   /// @brief Get one inner Iceberg QED round.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for one inner QED round.
   HOST auto getQEDRound(double p) const -> stim::Circuit {
     stim::Circuit circuit;
 
@@ -465,6 +495,7 @@ struct ConcatenatedSurfaceCode {
   /// @brief Get one outer QEC round over flagged checks.
   /// @param p Physical error rate.
   /// @param flags Per-outer-check flag bits (X then Z).
+  /// @return Stim circuit fragment for one outer QEC round.
   HOST auto getQECRound(double p, const Flags &flags) const -> stim::Circuit {
     stim::Circuit circuit;
 
@@ -543,6 +574,9 @@ struct ConcatenatedSurfaceCode {
   }
 
   /// @brief Element-wise XOR of two flag vectors.
+  /// @param a First flag vector.
+  /// @param b Second flag vector.
+  /// @return Element-wise `a XOR b` (truncated to `a.size()`).
   HOST static auto xorFlags(const Flags &a, const Flags &b) -> Flags {
     const size_t n = a.size();
     Flags out(n, 0);
@@ -553,6 +587,7 @@ struct ConcatenatedSurfaceCode {
   }
 
   /// @brief Read inner Iceberg measurement flags from the simulator record.
+  /// @return Per-inner-check flag bits (X then Z).
   HOST auto getInnerFlags() -> Flags {
     const uint32_t numInnerXChecks = (uint32_t)qubitIDs.innerXChecks.size();
     const uint32_t numInnerZChecks = (uint32_t)qubitIDs.innerZChecks.size();
@@ -574,6 +609,7 @@ struct ConcatenatedSurfaceCode {
 
   /// @brief Map inner flag diffs onto outer checks that share an Iceberg block.
   /// @param diff XOR of consecutive inner flag vectors.
+  /// @return Per-outer-check flag bits (X then Z).
   HOST auto getOuterFlags(const Flags &diff) -> Flags {
     const uint32_t numData = (uint32_t)qubitIDs.data.size();
     const uint32_t numInnerXChecks = (uint32_t)qubitIDs.innerXChecks.size();
@@ -602,6 +638,7 @@ struct ConcatenatedSurfaceCode {
   }
 
   /// @brief Accumulate pending inner corrections from flagged Iceberg checks.
+  /// @param innerFlags Per-inner-check flag bits (X then Z).
   HOST void trackInnerCorrections(const Flags &innerFlags) {
     const uint32_t numInnerXChecks = (uint32_t)qubitIDs.innerXChecks.size();
     const uint32_t numInnerZChecks = (uint32_t)qubitIDs.innerZChecks.size();
@@ -637,6 +674,7 @@ struct ConcatenatedSurfaceCode {
   /// @param p Physical error rate.
   /// @param strategy Outer-check measurement strategy.
   /// @param includeXDetectors Include X-check detectors each round.
+  /// @return Stim circuit fragment for `rounds` annotated QED/QEC cycles.
   HOST auto getCycle(uint32_t rounds,
                      double p,
                      MeasurementStrategy strategy = MeasurementStrategy::Static,
@@ -762,6 +800,7 @@ struct ConcatenatedSurfaceCode {
   /// @brief Get the tail of the circuit.
   /// @param rounds Round index used for detector coordinates.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for final data measurement.
   HOST auto getTail(uint32_t rounds, double p) -> stim::Circuit {
     stim::Circuit circuit;
     const uint32_t numData = (uint32_t)qubitIDs.data.size();
@@ -820,6 +859,7 @@ struct ConcatenatedSurfaceCode {
 
   /// @brief Extract a sparse shot from the simulator measurement record.
   /// @param circuit Circuit whose detectors/observables to evaluate.
+  /// @return Sparse detector hits and observable mask.
   HOST auto getShot(const stim::Circuit &circuit) -> stim::SparseShot {
     stim::SparseShot shot;
     shot.obs_mask = stim::simd_bits<64>(circuit.count_observables());
@@ -882,6 +922,7 @@ struct ConcatenatedSurfaceCode {
   /// @param p Physical error rate.
   /// @param strategy Outer-check measurement strategy.
   /// @param includeXDetectors Include X-check detectors each round.
+  /// @return Pair of `(circuit, sparse shot)` for one memory experiment.
   HOST auto
   getMemory(uint32_t rounds,
             double p,

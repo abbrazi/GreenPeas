@@ -84,6 +84,7 @@ HOST inline constexpr uint32_t getNodeOffset(NodeType type) {
 }
 
 /// @brief Error mixer for gates and noise channels.
+/// @tparam Level Correlation level.
 template <CorrelationLevel Level>
 struct Mixer {
   /// @brief Number of Pauli error nodes per qubit.

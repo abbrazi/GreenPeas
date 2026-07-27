@@ -45,6 +45,8 @@ enum class CodeType : uint32_t { Surface = 0, BB = 1 };
 enum class PauliBasis { X, Z };
 
 /// @brief Convert a `CodeType` to its on-disk directory name.
+/// @param type Code type.
+/// @return Directory name string for `type`.
 HOST inline auto toString(CodeType type) -> const char * {
   switch (type) {
   case CodeType::Surface:
@@ -60,6 +62,7 @@ HOST inline auto toString(CodeType type) -> const char * {
 /// @param type Code type.
 /// @param d Code distance.
 /// @param root Root data directory.
+/// @return Absolute path to the code data directory.
 HOST inline auto getCodePath(CodeType type, uint32_t d, const std::string &root)
     -> std::string {
   return root + "/codes/" + toString(type) + "/d" + std::to_string(d);
@@ -67,14 +70,27 @@ HOST inline auto getCodePath(CodeType type, uint32_t d, const std::string &root)
 
 /// @brief Qubit IDs for a stabiliser code layout.
 struct QubitIDs {
+  /// @brief All qubit indices.
   Qubits all;
+
+  /// @brief Data qubit indices.
   Qubits data;
+
+  /// @brief All check ancilla indices.
   Qubits checks;
+
+  /// @brief X-check ancilla indices.
   Qubits xChecks;
+
+  /// @brief Z-check ancilla indices.
   Qubits zChecks;
 };
 
 /// @brief Get qubit IDs for a stabiliser code layout.
+/// @param numData Number of data qubits.
+/// @param numXChecks Number of X-check ancillas.
+/// @param numZChecks Number of Z-check ancillas.
+/// @return Contiguous qubit ID layout.
 HOST inline auto getQubitIds(uint32_t numData,
                              uint32_t numXChecks,
                              uint32_t numZChecks) -> QubitIDs {
@@ -266,6 +282,7 @@ struct Code {
 
   /// @brief Get the head of the circuit.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for state preparation.
   HOST auto getHead(double p) const -> stim::Circuit {
     stim::Circuit circuit;
     circuit.safe_append_u("R", qubitIDs.data);
@@ -277,6 +294,7 @@ struct Code {
 
   /// @brief Get one QEC round.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for one stabilizer round.
   HOST auto getQECRound(double p) const -> stim::Circuit {
     stim::Circuit circuit;
 
@@ -311,6 +329,7 @@ struct Code {
   /// @param rounds Number of QEC rounds.
   /// @param p Physical error rate.
   /// @param includeXDetectors Include X-check detectors each round.
+  /// @return Stim circuit fragment for `rounds` annotated QEC rounds.
   HOST auto getQECRounds(uint32_t rounds,
                          double p,
                          bool includeXDetectors) const -> stim::Circuit {
@@ -341,6 +360,7 @@ struct Code {
 
   /// @brief Get the tail of the circuit.
   /// @param p Physical error rate.
+  /// @return Stim circuit fragment for final data measurement.
   HOST auto getTail(double p) const -> stim::Circuit {
     stim::Circuit circuit;
     const uint32_t numData = (uint32_t)qubitIDs.data.size();
@@ -379,6 +399,7 @@ struct Code {
   /// @param rounds Number of QEC rounds.
   /// @param p Physical error rate.
   /// @param includeXDetectors Include X-check detectors each round.
+  /// @return Full Stim memory-experiment circuit.
   HOST auto getMemory(uint32_t rounds,
                       double p,
                       bool includeXDetectors = true) const -> stim::Circuit {
@@ -386,12 +407,20 @@ struct Code {
   }
 };
 
+/// @brief Rotated planar surface code.
 struct SurfaceCode : Code {
+  /// @brief Construct a surface code with distance @p d under @p root.
+  /// @param d Code distance.
+  /// @param root Root data directory.
   HOST explicit SurfaceCode(uint32_t d, const std::string &root)
       : Code(CodeType::Surface, d, root) {}
 };
 
+/// @brief Bivariate bicycle (BB) code.
 struct BBCode : Code {
+  /// @brief Construct a BB code with distance @p d under @p root.
+  /// @param d Code distance.
+  /// @param root Root data directory.
   HOST explicit BBCode(uint32_t d, const std::string &root)
       : Code(CodeType::BB, d, root) {}
 };
