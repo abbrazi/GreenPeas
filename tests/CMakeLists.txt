@@ -21,6 +21,7 @@ add_gp_test(Core VectorTest)
 add_gp_test(Core WordsTest)
 
 add_gp_test(QEC/Codes CodeTest)
+add_gp_test(QEC/Codes ConcatenatedSurfaceCodeTest)
 
 add_gp_test(QEC/ErrorAnalysis CircuitTest)
 add_gp_test(QEC/ErrorAnalysis DriverTest)
