@@ -28,6 +28,38 @@ enum class MeasurementStrategy : uint32_t {
   Adaptive = 1
 };
 
+/// @brief Circuit-level and phenomenological Stim circuit pair.
+struct CircuitPair {
+  /// @brief Circuit-level noise model.
+  stim::Circuit circl;
+
+  /// @brief Phenomenological noise model.
+  stim::Circuit pheno;
+
+  /// @brief Append the same instruction to both circuits.
+  /// @param gate_name Stim gate name.
+  /// @param targets Qubit / record targets.
+  /// @param args Optional gate arguments.
+  HOST void safe_append_u(std::string_view gate_name,
+                          const std::vector<uint32_t> &targets,
+                          const std::vector<double> &args = {}) {
+    circl.safe_append_u(gate_name, targets, args);
+    pheno.safe_append_u(gate_name, targets, args);
+  }
+
+  /// @brief Concatenate matching noise-model circuits.
+  HOST auto operator+(const CircuitPair &other) const -> CircuitPair {
+    return {circl + other.circl, pheno + other.pheno};
+  }
+
+  /// @brief Concatenate matching noise-model circuits in place.
+  HOST auto operator+=(const CircuitPair &other) -> CircuitPair & {
+    circl += other.circl;
+    pheno += other.pheno;
+    return *this;
+  }
+};
+
 /// @brief Qubit IDs for a concatenated Iceberg + surface-code layout.
 struct ConcatenatedQubitIDs {
   /// @brief All qubit indices.
@@ -120,13 +152,13 @@ HOST inline auto getConcatenatedQubitIds(uint32_t numData,
 }
 
 /// @brief Append noisy CNOT layers for pairs involving flagged qubits.
-/// @param circuit Stim circuit to extend.
+/// @param circuits Circuits to extend.
 /// @param schedule Layered CNOT schedule.
 /// @param flagged Lookup of flagged qubit IDs.
 /// @param p Physical error rate.
 /// @param all Full list of qubit indices (must be sorted).
 /// @param idle Reusable buffer for idle qubits each layer.
-HOST inline void appendFlaggedCNOTLayers(stim::Circuit &circuit,
+HOST inline void appendFlaggedCNOTLayers(CircuitPair &circuits,
                                          const CNOTSchedule &schedule,
                                          const Flags &flagged,
                                          double p,
@@ -147,12 +179,34 @@ HOST inline void appendFlaggedCNOTLayers(stim::Circuit &circuit,
     if (flaggedActive.empty()) {
       continue;
     }
-    circuit.safe_append_u("CNOT", flaggedActive);
-    circuit.safe_append_u("TICK", {});
-    circuit.safe_append_u("DEPOLARIZE2", flaggedActive, {p});
+    circuits.safe_append_u("CNOT", flaggedActive);
+    circuits.safe_append_u("TICK", {});
+    circuits.circl.safe_append_u("DEPOLARIZE2", flaggedActive, {p});
     getIdleQubits(all, flaggedActive, idle);
     if (!idle.empty()) {
-      circuit.safe_append_u("DEPOLARIZE1", idle, {p / 10});
+      circuits.circl.safe_append_u("DEPOLARIZE1", idle, {p / 10});
+    }
+  }
+}
+
+/// @brief Append CNOT layers for pairs.
+/// @param circuits Circuits to extend.
+/// @param schedule Layered CNOT schedule.
+/// @param p Physical error rate.
+/// @param all Full list of qubit indices (must be sorted).
+/// @param idle Reusable buffer for idle qubits each layer.
+HOST inline void appendCNOTLayers(CircuitPair &circuits,
+                                  const CNOTSchedule &schedule,
+                                  double p,
+                                  const Qubits &all,
+                                  Qubits &idle) {
+  for (const auto &active : schedule) {
+    circuits.safe_append_u("CNOT", active);
+    circuits.safe_append_u("TICK", {});
+    circuits.circl.safe_append_u("DEPOLARIZE2", active, {p});
+    getIdleQubits(all, active, idle);
+    if (!idle.empty()) {
+      circuits.circl.safe_append_u("DEPOLARIZE1", idle, {p / 10});
     }
   }
 }
@@ -443,61 +497,65 @@ struct ConcatenatedSurfaceCode {
     }
   }
 
-  /// @brief Get the head of the circuit.
+  /// @brief Get the head of the circuits.
   /// @param p Physical error rate.
-  /// @return Stim circuit fragment for state preparation.
-  HOST auto getHead(double p) -> stim::Circuit {
-    stim::Circuit circuit;
-    circuit.safe_append_u("R", qubitIDs.data);
-    circuit.safe_append_u("TICK", {});
-    circuit.safe_append_u("X_ERROR", qubitIDs.data, {p});
-    circuit.safe_append_u("DEPOLARIZE1", qubitIDs.checks, {p / 10});
-    sim.safe_do_circuit(circuit);
-    return circuit;
+  /// @return State-preparation fragments.
+  HOST auto getHead(double p) -> CircuitPair {
+    CircuitPair circuits;
+
+    circuits.safe_append_u("R", qubitIDs.data);
+    circuits.safe_append_u("TICK", {});
+    circuits.circl.safe_append_u("X_ERROR", qubitIDs.data, {p});
+    circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.checks, {p / 10});
+
+    sim.safe_do_circuit(circuits.circl);
+
+    return circuits;
   }
 
   /// @brief Get one inner Iceberg QED round.
   /// @param p Physical error rate.
-  /// @return Stim circuit fragment for one inner QED round.
-  HOST auto getQEDRound(double p) const -> stim::Circuit {
-    stim::Circuit circuit;
+  /// @return Inner QED fragments.
+  HOST auto getQEDRound(double p) const -> CircuitPair {
+    CircuitPair circuits;
 
     Qubits idle;
     idle.reserve(qubitIDs.all.size());
 
-    circuit.safe_append_u("R", qubitIDs.innerChecks);
-    circuit.safe_append_u("TICK", {});
-    circuit.safe_append_u("X_ERROR", qubitIDs.innerChecks, {p});
+    circuits.safe_append_u("R", qubitIDs.innerChecks);
+    circuits.safe_append_u("TICK", {});
+    circuits.circl.safe_append_u("X_ERROR", qubitIDs.innerChecks, {p});
     getIdleQubits(qubitIDs.all, qubitIDs.innerChecks, idle);
     if (!idle.empty()) {
-      circuit.safe_append_u("DEPOLARIZE1", idle, {p / 10});
+      circuits.circl.safe_append_u("DEPOLARIZE1", idle, {p / 10});
     }
+    circuits.pheno.safe_append_u("DEPOLARIZE1", qubitIDs.data, {p / 10});
 
     if (!qubitIDs.innerXChecks.empty()) {
-      circuit.safe_append_u("H", qubitIDs.innerXChecks);
-      circuit.safe_append_u("TICK", {});
-      circuit.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
+      circuits.safe_append_u("H", qubitIDs.innerXChecks);
+      circuits.safe_append_u("TICK", {});
+      circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
     }
 
-    appendCNOTLayers(circuit, innerCheckXSchedule, p, qubitIDs.all, idle);
-    appendCNOTLayers(circuit, innerCheckZSchedule, p, qubitIDs.all, idle);
+    appendCNOTLayers(circuits, innerCheckXSchedule, p, qubitIDs.all, idle);
+    appendCNOTLayers(circuits, innerCheckZSchedule, p, qubitIDs.all, idle);
 
     if (!qubitIDs.innerXChecks.empty()) {
-      circuit.safe_append_u("H", qubitIDs.innerXChecks);
-      circuit.safe_append_u("TICK", {});
-      circuit.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
+      circuits.safe_append_u("H", qubitIDs.innerXChecks);
+      circuits.safe_append_u("TICK", {});
+      circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
     }
 
-    circuit.safe_append_u("M", qubitIDs.innerChecks, {p});
-    return circuit;
+    circuits.safe_append_u("M", qubitIDs.innerChecks, {p});
+    return circuits;
   }
 
   /// @brief Get one outer QEC round over flagged checks.
   /// @param p Physical error rate.
   /// @param flags Per-outer-check flag bits (X then Z).
-  /// @return Stim circuit fragment for one outer QEC round.
-  HOST auto getQECRound(double p, const Flags &flags) const -> stim::Circuit {
-    stim::Circuit circuit;
+  /// @return Outer QEC fragments.
+  HOST auto getQECRound(double p, const Flags &flags) const -> CircuitPair {
+    CircuitPair circuits;
 
     const uint32_t numData = (uint32_t)qubitIDs.data.size();
     const uint32_t numInnerChecks = (uint32_t)qubitIDs.innerChecks.size();
@@ -526,36 +584,37 @@ struct ConcatenatedSurfaceCode {
     flagged.insert(flagged.end(), flaggedZ.begin(), flaggedZ.end());
 
     if (flagged.empty()) {
-      return circuit;
+      return circuits;
     }
 
     Qubits idle;
     idle.reserve(qubitIDs.all.size());
 
-    circuit.safe_append_u("R", flagged);
-    circuit.safe_append_u("TICK", {});
-    circuit.safe_append_u("X_ERROR", flagged, {p});
+    circuits.safe_append_u("R", flagged);
+    circuits.safe_append_u("TICK", {});
+    circuits.circl.safe_append_u("X_ERROR", flagged, {p});
     getIdleQubits(qubitIDs.all, flagged, idle);
     if (!idle.empty()) {
-      circuit.safe_append_u("DEPOLARIZE1", idle, {p / 10});
+      circuits.circl.safe_append_u("DEPOLARIZE1", idle, {p / 10});
     }
+    circuits.pheno.safe_append_u("DEPOLARIZE1", qubitIDs.data, {p / 10});
 
     if (!flaggedX.empty()) {
-      circuit.safe_append_u("H", flaggedX);
-      circuit.safe_append_u("TICK", {});
-      circuit.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
+      circuits.safe_append_u("H", flaggedX);
+      circuits.safe_append_u("TICK", {});
+      circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
     }
 
     const bool allOuter = flagged.size() == numOuterChecks;
     if (allOuter) {
       appendCNOTLayers(
-          circuit, outerInterleavedSchedule, p, qubitIDs.all, idle);
+          circuits, outerInterleavedSchedule, p, qubitIDs.all, idle);
     } else {
       Flags flaggedLookup(numData + numInnerChecks + numOuterChecks, 0);
       for (const uint32_t q : flagged) {
         flaggedLookup[q] = 1;
       }
-      appendFlaggedCNOTLayers(circuit,
+      appendFlaggedCNOTLayers(circuits,
                               outerInterleavedSchedule,
                               flaggedLookup,
                               p,
@@ -564,13 +623,13 @@ struct ConcatenatedSurfaceCode {
     }
 
     if (!flaggedX.empty()) {
-      circuit.safe_append_u("H", flaggedX);
-      circuit.safe_append_u("TICK", {});
-      circuit.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
+      circuits.safe_append_u("H", flaggedX);
+      circuits.safe_append_u("TICK", {});
+      circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.all, {p / 10});
     }
 
-    circuit.safe_append_u("M", flagged, {p});
-    return circuit;
+    circuits.safe_append_u("M", flagged, {p});
+    return circuits;
   }
 
   /// @brief Element-wise XOR of two flag vectors.
@@ -674,11 +733,11 @@ struct ConcatenatedSurfaceCode {
   /// @param p Physical error rate.
   /// @param strategy Outer-check measurement strategy.
   /// @param includeXDetectors Include X-check detectors each round.
-  /// @return Stim circuit fragment for `rounds` annotated QED/QEC cycles.
+  /// @return Detector-annotated QED/QEC cycles.
   HOST auto getCycle(uint32_t rounds,
                      double p,
                      MeasurementStrategy strategy = MeasurementStrategy::Static,
-                     bool includeXDetectors = true) -> stim::Circuit {
+                     bool includeXDetectors = true) -> CircuitPair {
     const uint32_t numInnerXChecks = (uint32_t)qubitIDs.innerXChecks.size();
     const uint32_t numInnerZChecks = (uint32_t)qubitIDs.innerZChecks.size();
     const uint32_t numInnerChecks = (uint32_t)qubitIDs.innerChecks.size();
@@ -701,27 +760,31 @@ struct ConcatenatedSurfaceCode {
 
     auto qed = getQEDRound(p);
     for (uint32_t i = 0; i < numInnerZChecks; ++i) {
-      qed.safe_append_u("DETECTOR",
-                        {(numInnerZChecks - i) | stim::TARGET_RECORD_BIT},
-                        {1.0, (double)qubitIDs.innerZChecks[i], (double)round});
+      const auto targets =
+          Qubits{(numInnerZChecks - i) | stim::TARGET_RECORD_BIT};
+      const std::vector<double> args = {
+          1.0, (double)qubitIDs.innerZChecks[i], (double)round};
+      qed.safe_append_u("DETECTOR", targets, args);
     }
-    sim.safe_do_circuit(qed);
+    sim.safe_do_circuit(qed.circl);
 
     prevInnerFlags = getInnerFlags();
     trackInnerCorrections(prevInnerFlags);
 
     auto qec = getQECRound(p, outerFlags);
     for (uint32_t i = 0; i < numOuterZChecks; ++i) {
-      qec.safe_append_u("DETECTOR",
-                        {(numOuterZChecks - i) | stim::TARGET_RECORD_BIT},
-                        {1.0, (double)qubitIDs.outerZChecks[i], (double)round});
+      const auto targets =
+          Qubits{(numOuterZChecks - i) | stim::TARGET_RECORD_BIT};
+      const std::vector<double> args = {
+          1.0, (double)qubitIDs.outerZChecks[i], (double)round};
+      qec.safe_append_u("DETECTOR", targets, args);
     }
-    sim.safe_do_circuit(qec);
+    sim.safe_do_circuit(qec.circl);
 
     const auto init = qed + qec;
     ++round;
 
-    stim::Circuit mid;
+    CircuitPair mid;
     uint32_t numFlagged = numOuterChecks;
 
     for (; round < rounds; ++round) {
@@ -729,23 +792,25 @@ struct ConcatenatedSurfaceCode {
 
       if (includeXDetectors) {
         for (uint32_t i = 0; i < numInnerXChecks; ++i) {
-          qed.safe_append_u(
-              "DETECTOR",
-              {(uint32_t)(numInnerChecks * 1 - i) | stim::TARGET_RECORD_BIT,
-               (uint32_t)(numInnerChecks * 2 - i + numFlagged) |
-                   stim::TARGET_RECORD_BIT},
-              {1.0, (double)qubitIDs.innerChecks[i], (double)round});
+          const auto targets = Qubits{
+              (uint32_t)(numInnerChecks * 1 - i) | stim::TARGET_RECORD_BIT,
+              (uint32_t)(numInnerChecks * 2 - i + numFlagged) |
+                  stim::TARGET_RECORD_BIT};
+          const std::vector<double> args = {
+              1.0, (double)qubitIDs.innerChecks[i], (double)round};
+          qed.safe_append_u("DETECTOR", targets, args);
         }
       }
       for (uint32_t i = numInnerXChecks; i < numInnerChecks; ++i) {
-        qed.safe_append_u(
-            "DETECTOR",
-            {(uint32_t)(numInnerChecks * 1 - i) | stim::TARGET_RECORD_BIT,
-             (uint32_t)(numInnerChecks * 2 - i + numFlagged) |
-                 stim::TARGET_RECORD_BIT},
-            {1.0, (double)qubitIDs.innerChecks[i], (double)round});
+        const auto targets =
+            Qubits{(uint32_t)(numInnerChecks * 1 - i) | stim::TARGET_RECORD_BIT,
+                   (uint32_t)(numInnerChecks * 2 - i + numFlagged) |
+                       stim::TARGET_RECORD_BIT};
+        const std::vector<double> args = {
+            1.0, (double)qubitIDs.innerChecks[i], (double)round};
+        qed.safe_append_u("DETECTOR", targets, args);
       }
-      sim.safe_do_circuit(qed);
+      sim.safe_do_circuit(qed.circl);
 
       currInnerFlags = getInnerFlags();
       trackInnerCorrections(currInnerFlags);
@@ -782,14 +847,15 @@ struct ConcatenatedSurfaceCode {
 
         const uint32_t delta = currMeasurement - prevMeasurement;
         if (delta > 0 && (includeXDetectors || i >= numOuterXChecks)) {
-          qec.safe_append_u(
-              "DETECTOR",
-              {(totalMeasurements - prevMeasurement) | stim::TARGET_RECORD_BIT,
-               (totalMeasurements - currMeasurement) | stim::TARGET_RECORD_BIT},
-              {1.0, (double)qubitIDs.outerChecks[i], (double)round});
+          const auto targets = Qubits{
+              (totalMeasurements - prevMeasurement) | stim::TARGET_RECORD_BIT,
+              (totalMeasurements - currMeasurement) | stim::TARGET_RECORD_BIT};
+          const std::vector<double> args = {
+              1.0, (double)qubitIDs.outerChecks[i], (double)round};
+          qec.safe_append_u("DETECTOR", targets, args);
         }
       }
-      sim.safe_do_circuit(qec);
+      sim.safe_do_circuit(qec.circl);
 
       mid += qed + qec;
     }
@@ -800,15 +866,16 @@ struct ConcatenatedSurfaceCode {
   /// @brief Get the tail of the circuit.
   /// @param rounds Round index used for detector coordinates.
   /// @param p Physical error rate.
-  /// @return Stim circuit fragment for final data measurement.
-  HOST auto getTail(uint32_t rounds, double p) -> stim::Circuit {
-    stim::Circuit circuit;
+  /// @return Final data-measurement fragments.
+  HOST auto getTail(uint32_t rounds, double p) -> CircuitPair {
+    CircuitPair circuits;
     const uint32_t numData = (uint32_t)qubitIDs.data.size();
     const uint32_t numInnerZChecks = (uint32_t)qubitIDs.innerZChecks.size();
     const uint32_t numOuterZChecks = (uint32_t)qubitIDs.outerZChecks.size();
     const uint32_t numOuterChecks = (uint32_t)qubitIDs.outerChecks.size();
 
-    circuit.safe_append_u("M", qubitIDs.data, {p});
+    // Tail noise is measurement flips only, so circl and pheno match.
+    circuits.safe_append_u("M", qubitIDs.data, {p});
 
     for (uint32_t i = 0; i < numInnerZChecks; ++i) {
       const uint32_t base = 4 * i;
@@ -820,7 +887,7 @@ struct ConcatenatedSurfaceCode {
       records.push_back((numData - base - 3) | stim::TARGET_RECORD_BIT);
       records.push_back((numData + numOuterChecks + numInnerZChecks - i) |
                         stim::TARGET_RECORD_BIT);
-      circuit.safe_append_u(
+      circuits.safe_append_u(
           "DETECTOR",
           records,
           {1.0, (double)qubitIDs.innerZChecks[i], (double)rounds});
@@ -838,7 +905,7 @@ struct ConcatenatedSurfaceCode {
       }
       records.push_back((numData + numOuterZChecks - check) |
                         stim::TARGET_RECORD_BIT);
-      circuit.safe_append_u(
+      circuits.safe_append_u(
           "DETECTOR",
           records,
           {1.0, (double)qubitIDs.outerZChecks[check], (double)rounds});
@@ -850,11 +917,11 @@ struct ConcatenatedSurfaceCode {
       for (const uint32_t q : support) {
         records.push_back((numData - q) | stim::TARGET_RECORD_BIT);
       }
-      circuit.safe_append_u("OBSERVABLE_INCLUDE", records, {(double)logical});
+      circuits.safe_append_u("OBSERVABLE_INCLUDE", records, {(double)logical});
     }
 
-    sim.safe_do_circuit(circuit);
-    return circuit;
+    sim.safe_do_circuit(circuits.circl);
+    return circuits;
   }
 
   /// @brief Extract a sparse shot from the simulator measurement record.
@@ -922,21 +989,21 @@ struct ConcatenatedSurfaceCode {
   /// @param p Physical error rate.
   /// @param strategy Outer-check measurement strategy.
   /// @param includeXDetectors Include X-check detectors each round.
-  /// @return Pair of `(circuit, sparse shot)` for one memory experiment.
+  /// @return Circuits and sparse shot for one memory experiment.
   HOST auto
   getMemory(uint32_t rounds,
             double p,
             MeasurementStrategy strategy = MeasurementStrategy::Static,
             bool includeXDetectors = true)
-      -> std::pair<stim::Circuit, stim::SparseShot> {
+      -> std::pair<CircuitPair, stim::SparseShot> {
     reset();
     const auto head = getHead(p);
     const auto cycle = getCycle(rounds, p, strategy, includeXDetectors);
     const auto tail = getTail(rounds, p);
     applyInnerCorrections();
-    const auto circuit = head + cycle + tail;
-    const auto shot = getShot(circuit);
-    return {circuit, shot};
+    const auto circuits = head + cycle + tail;
+    const auto shot = getShot(circuits.circl);
+    return {circuits, shot};
   }
 };
 

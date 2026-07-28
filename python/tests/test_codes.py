@@ -28,10 +28,34 @@ CASES = [
 ]
 
 CSF_CASES = [
-    (4, MeasurementStrategy.Static, 0.001, "iceberg_surface_4_static.stim"),
-    (6, MeasurementStrategy.Static, 0.001, "iceberg_surface_6_static.stim"),
-    (4, MeasurementStrategy.Adaptive, 0.0, "iceberg_surface_4_adaptive.stim"),
-    (6, MeasurementStrategy.Adaptive, 0.0, "iceberg_surface_6_adaptive.stim"),
+    (
+        4,
+        MeasurementStrategy.Static,
+        0.001,
+        "iceberg_surface_4_static_circl.stim",
+        "iceberg_surface_4_static_pheno.stim",
+    ),
+    (
+        6,
+        MeasurementStrategy.Static,
+        0.001,
+        "iceberg_surface_6_static_circl.stim",
+        "iceberg_surface_6_static_pheno.stim",
+    ),
+    (
+        4,
+        MeasurementStrategy.Adaptive,
+        0.0,
+        "iceberg_surface_4_adaptive_circl.stim",
+        "iceberg_surface_4_adaptive_pheno.stim",
+    ),
+    (
+        6,
+        MeasurementStrategy.Adaptive,
+        0.0,
+        "iceberg_surface_6_adaptive_circl.stim",
+        "iceberg_surface_6_adaptive_pheno.stim",
+    ),
 ]
 
 
@@ -49,29 +73,35 @@ def test_code_get_memory(
     assert actual == expected
 
 
-@pytest.mark.parametrize(("distance", "strategy", "p", "circuit_name"), CSF_CASES)
+@pytest.mark.parametrize(
+    ("distance", "strategy", "p", "circl_name", "pheno_name"), CSF_CASES
+)
 def test_concatenated_surface_code_get_memory(
     distance: int,
     strategy: MeasurementStrategy,
     p: float,
-    circuit_name: str,
+    circl_name: str,
+    pheno_name: str,
 ) -> None:
     code = ConcatenatedSurfaceCode(distance)
-    reference_path = DATA / "circuits" / circuit_name
+    circl_path = DATA / "circuits" / circl_name
+    pheno_path = DATA / "circuits" / pheno_name
 
-    circuit, detection_events, observable_flips = code.get_memory(
+    circl, pheno, detection_events, observable_flips = code.get_memory(
         rounds=distance, p=p, strategy=strategy
     )
 
-    expected = stim.Circuit.from_file(str(reference_path))
+    expected_circl = stim.Circuit.from_file(str(circl_path))
+    expected_pheno = stim.Circuit.from_file(str(pheno_path))
 
-    assert circuit == expected
+    assert circl == expected_circl
+    assert pheno == expected_pheno
 
     assert isinstance(detection_events, np.ndarray)
     assert isinstance(observable_flips, np.ndarray)
 
     assert detection_events.dtype == bool
     assert observable_flips.dtype == bool
-    
-    assert detection_events.shape == (circuit.num_detectors,)
-    assert observable_flips.shape == (circuit.num_observables,)
+
+    assert detection_events.shape == (circl.num_detectors,)
+    assert observable_flips.shape == (circl.num_observables,)
