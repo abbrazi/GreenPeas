@@ -48,11 +48,14 @@ void bindCodes(py::module_ &codes) {
              double p,
              MeasurementStrategy strategy,
              bool include_x_detectors) {
-            auto [circuit, shot] =
+            auto [circuits, shot] =
                 code.getMemory(rounds, p, strategy, include_x_detectors);
-            auto [detArray, obsArray] = sparseShotToDenseArrays(
-                shot, circuit.count_detectors(), circuit.count_observables());
-            return py::make_tuple(circuitToPython(std::move(circuit)),
+            auto [detArray, obsArray] =
+                sparseShotToDenseArrays(shot,
+                                        circuits.circl.count_detectors(),
+                                        circuits.circl.count_observables());
+            return py::make_tuple(circuitToPython(std::move(circuits.circl)),
+                                  circuitToPython(std::move(circuits.pheno)),
                                   std::move(detArray),
                                   std::move(obsArray));
           },
