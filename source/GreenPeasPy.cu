@@ -11,6 +11,7 @@ PYBIND11_MODULE(_gppy, m) {
   auto codes = m.def_submodule("codes", "Stabilizer QEC codes.");
   gp::pybind::bindCodes(codes);
 
-  auto error_analysis = m.def_submodule("error_analysis", "Error analysis driver.");
+  auto error_analysis =
+      m.def_submodule("error_analysis", "Error analysis driver.");
   gp::pybind::bindErrorAnalysis(error_analysis);
 }

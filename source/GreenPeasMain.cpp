@@ -1,6 +1,9 @@
+/// Standard headers
 #include <iostream>
 
 auto gpMain(int argc, char **argv) -> int {
-  std::cout << "Using Host\n";
-  return 0;
+  (void)argc;
+  (void)argv;
+  std::cerr << "Unsupported. Please use the CUDA build.\n";
+  return 1;
 }

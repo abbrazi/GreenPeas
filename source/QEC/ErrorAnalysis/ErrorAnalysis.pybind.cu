@@ -5,9 +5,9 @@
 #include <variant>
 
 #include "GreenPeas/Policies/Data/Layout.hpp"
-#include "GreenPeas/QEC/Shims/Stim.pybind.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Driver.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Mixer.hpp"
+#include "GreenPeas/QEC/Shims/Stim.pybind.hpp"
 
 #include "GreenPeas/Policies/Compute/CUDA.hpp"
 #include "GreenPeas/Policies/Storage/CUDA.hpp"

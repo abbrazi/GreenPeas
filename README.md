@@ -6,21 +6,21 @@ GreenPeas builds DEMs just-in-time so decoders can track mid-circuit branching a
 
 It is orders of magnitude faster than standard CPU methods (see [paper](https://arxiv.org/abs/2604.16613)).
 
-<p align="center">
-  <img src="data/images/stim_comparison.png" width="650" alt="Speedup of GreenPeas vs Stim">
-</p>
+## Prerequisites
+
+- NVIDIA GPU and a working CUDA toolkit
+- CMake ≥ 3.27 and Ninja
+- Dev container (recommended): reopen the repo in the GreenPeas container from VS Code
 
 ## Quick start
 
-1. Recommended: open the project in VS Code and accept the toast to reopen it in a container
-
-2. Source the setup script with the compute capability `XX` of your GPU card, e.g., `86` for Ampere:
+1. Source the setup script with the compute capability `XX` of your GPU card, e.g., `86` for Ampere:
 
     ```sh
     source ./scripts/setup.sh XX
     ```
 
-3. Create a Python virtual environment and install the `greenpeas` package with the optional dev dependencies:
+2. Install the `greenpeas` package with the optional dev dependencies:
 
     ```sh
     python3 -m venv venv
@@ -28,13 +28,13 @@ It is orders of magnitude faster than standard CPU methods (see [paper](https://
     pip install .[dev]
     ```
 
-4. Run the Python unit tests:
+3. Run the Python unit tests:
 
     ```sh
     pytest
     ```
 
-## Basic Example
+## Basic API Example
 
 ```python
 """Compile DEMs for BB code circuits on the GPU."""

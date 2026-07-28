@@ -47,7 +47,7 @@ else()
   set(GP_EXT cpp)
 endif()
 
-target_link_libraries(libgp INTERFACE libstim)
+target_link_libraries(libgp INTERFACE libstim tesseract_lib)
 
 target_include_directories(
   libgp
@@ -79,6 +79,11 @@ if(GP_USE_CUDA)
 endif()
 
 target_link_libraries(gp PRIVATE libgp CLI11::CLI11)
+target_compile_definitions(
+  gp
+  PRIVATE
+  GP_DATA_PATH="${CMAKE_SOURCE_DIR}/data"
+)
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(cmake/install-rules.cmake)
