@@ -13,6 +13,7 @@ default(
   include/**/*.hpp
   source/**/*.cpp
   source/**/*.hpp
+  source/**/*.cu
   tests/**/*.cpp
   tests/**/*.hpp
 )

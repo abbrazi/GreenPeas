@@ -13,3 +13,13 @@ FetchContent_Declare(
   GIT_TAG v1.15.0
 )
 FetchContent_MakeAvailable(stim)
+
+set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+FetchContent_Declare(
+  tesseract
+  GIT_REPOSITORY https://github.com/quantumlib/tesseract-decoder.git
+  GIT_TAG 5d9c3f9e7f35fc6a1d3fc5860c28886f874fb62e
+)
+FetchContent_MakeAvailable(tesseract)
