@@ -166,25 +166,27 @@ struct Driver {
   HOST auto getDetectorErrorModel() -> stim::DetectorErrorModel {
     const uint32_t numDetectors = circuit.parameters.numDetectors;
 
-    auto getTarget = [&](uint32_t d) {
-      return d >= numDetectors
-                 ? stim::DemTarget::observable_id(d - numDetectors)
-                 : stim::DemTarget::relative_detector_id(d);
-    };
-
     stim::DetectorErrorModel dem;
+    dem.instructions.reserve(model.numClasses);
+
+    stim::DemTarget targets[W];
     for (uint32_t row = 0; row < model.numClasses; ++row) {
-      double p = model.probabilities[row];
-      std::vector<stim::DemTarget> targets;
-      targets.reserve(W);
+      const double p = model.probabilities[row];
+      uint32_t nTargets = 0;
       for (uint32_t col = 0; col < W; ++col) {
-        uint32_t d = model.classes(row, col);
-        if (d != UINT32_MAX) {
-          targets.emplace_back(getTarget(d));
+        const uint32_t d = model.classes(row, col);
+        if (d == UINT32_MAX) {
+          break; // remaining slots are padding
         }
+        targets[nTargets++] =
+            d >= numDetectors ? stim::DemTarget::observable_id(d - numDetectors)
+                              : stim::DemTarget::relative_detector_id(d);
       }
-      if (!targets.empty()) {
-        dem.append_error_instruction(p, targets, "");
+      if (nTargets != 0) {
+        dem.append_error_instruction(
+            p,
+            stim::SpanRef<const stim::DemTarget>{targets, targets + nTargets},
+            "");
       }
     }
 
