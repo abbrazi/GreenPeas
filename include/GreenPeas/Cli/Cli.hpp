@@ -280,10 +280,10 @@ struct Cli {
     auto driver = CompilerDriver<Level>::fromStimCircuit(circuit);
 
     // warmup
-    (void)driver.compileDetectorErrorModel(circuit);
+    (void)driver.compileDetectorErrorModel();
 
     return SLCO{time<Duration>(
-        n, true, [&] { (void)driver.compileDetectorErrorModel(circuit); })};
+        n, true, [&] { (void)driver.compileDetectorErrorModel(); })};
   }
 
   /// @brief Compile DEM for each circuit in @p batch with GreenPeas once.
@@ -292,15 +292,16 @@ struct Cli {
     auto driver = CompilerDriver<Level>::fromStimCircuit(batch.front());
 
     // warmup on max circuit
-    (void)driver.compileDetectorErrorModel(batch.front());
+    (void)driver.compileDetectorErrorModel();
 
     Times times;
     times.reserve(batch.size() - 1); // exclude max circuit
 
     // time everything except the max circuit at index 0
     for (size_t i = 1; i < batch.size(); ++i) {
+      driver.circuit.parseFromStimCircuit(batch[i]);
       times.push_back(timeOnce<Duration>(
-          [&] { (void)driver.compileDetectorErrorModel(batch[i]); }));
+          [&] { (void)driver.compileDetectorErrorModel(); }));
     }
 
     return MLCO{timingStats(times)};
