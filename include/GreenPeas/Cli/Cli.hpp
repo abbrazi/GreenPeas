@@ -2,15 +2,18 @@
 #define GREENPEAS_CLI_CLI_HPP
 
 /// Standard headers
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <ostream>
 #include <random>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -19,6 +22,7 @@
 #include "GreenPeas/Common.hpp"
 #include "GreenPeas/Perf/Timing.hpp"
 #include "GreenPeas/QEC/Codes/Code.hpp"
+#include "GreenPeas/QEC/Codes/ConcatenatedSurfaceCode.hpp"
 #include "GreenPeas/QEC/ErrorAnalysis/Driver.hpp"
 
 /// External headers
@@ -43,51 +47,51 @@ struct Cli {
   using Preds = std::vector<std::vector<int>>;
   using Times = std::vector<Duration>;
 
-  // == Static compile types ===================================================
+  // == Single-level compile types ============================================
 
-  /// @brief Static compile output.
-  struct SCO {
+  /// @brief Compilation output for a single-level code.
+  struct SLCO {
     TimingStats timing{};
   };
 
-  /// @brief Static compile row.
-  struct SCR {
-    uint64_t n{};
+  /// @brief Compilation row for a single-level code.
+  struct SLCR {
+    size_t n{};
     std::string code;
-    SCO gp0{};
-    SCO gp1{};
-    SCO gp2{};
-    SCO ref{};
+    SLCO gp0{};
+    SLCO gp1{};
+    SLCO gp2{};
+    SLCO ref{};
   };
 
-  /// @brief Serialize a static-compile CSV row.
-  HOST static auto stringOf(const SCR &r) -> std::string {
+  /// @brief Serialise an SLCR.
+  HOST static auto stringOf(const SLCR &r) -> std::string {
     std::ostringstream out;
     out << r.n << ',' << r.code << ',' << r.gp0.timing << ',' << r.gp1.timing
         << ',' << r.gp2.timing << ',' << r.ref.timing;
     return out.str();
   }
 
-  // == Static decode types ===================================================
+  // == Single-level decode types =============================================
 
-  /// @brief Static decode output.
-  struct SDO {
+  /// @brief Decode output for a single-level code.
+  struct SLDO {
     size_t fails{};
     TimingStats timing{};
   };
 
-  /// @brief Static decode row.
-  struct SDR {
-    uint64_t n{};
+  /// @brief Decode row for a single code.
+  struct SLDR {
+    size_t n{};
     std::string code;
-    SDO gp0{};
-    SDO gp1{};
-    SDO gp2{};
-    SDO ref{};
+    SLDO gp0{};
+    SLDO gp1{};
+    SLDO gp2{};
+    SLDO ref{};
   };
 
-  /// @brief Serialize a static-decode CSV row.
-  HOST static auto stringOf(const SDR &r) -> std::string {
+  /// @brief Serialise an SLDR.
+  HOST static auto stringOf(const SLDR &r) -> std::string {
     std::ostringstream out;
     out << r.n << ',' << r.code << ',' << r.gp0.fails << ',' << r.gp0.timing
         << ',' << r.gp1.fails << ',' << r.gp1.timing << ',' << r.gp2.fails
@@ -95,15 +99,63 @@ struct Cli {
     return out.str();
   }
 
+  // == Multi-level compile types =============================================
+
+  /// @brief Compile output for a multi-level code.
+  using MLCO = SLCO;
+
+  /// @brief Compile row for a multi-level code.
+  struct MLCR {
+    size_t n{};
+    std::string code;
+    std::string strategy;
+    MLCO phe{};
+    MLCO gp0{};
+    MLCO gp1{};
+    MLCO gp2{};
+    MLCO ref{};
+  };
+
+  /// @brief Serialise an MLCR.
+  HOST static auto stringOf(const MLCR &r) -> std::string {
+    std::ostringstream out;
+    out << r.n << ',' << r.code << ',' << r.strategy << ',' << r.phe.timing
+        << ',' << r.gp0.timing << ',' << r.gp1.timing << ',' << r.gp2.timing
+        << ',' << r.ref.timing;
+    return out.str();
+  }
+
+  // == Multi-level decode types ==============================================
+
+  /// @brief Decode output for a multi-level code.
+  using MLDO = SLDO;
+
+  /// @brief Decode row for a multi-level code.
+  struct MLDR {
+    size_t n{};
+    std::string code;
+    std::string strategy;
+    MLDO gp0{};
+    MLDO phe{};
+  };
+
+  /// @brief Serialise an MLDR.
+  HOST static auto stringOf(const MLDR &r) -> std::string {
+    std::ostringstream out;
+    out << r.n << ',' << r.code << ',' << r.strategy << ',' << r.gp0.fails
+        << ',' << r.gp0.timing << ',' << r.phe.fails << ',' << r.phe.timing;
+    return out.str();
+  }
+
   // == Entry points ==========================================================
 
-  /// @brief Generate static memory compilation results (Fig. 3).
-  HOST static auto staticCompile(uint64_t n) -> int {
-    log("Generating static memory compilation results");
+  /// @brief Generate compilation results for single-level codes (Fig. 3).
+  HOST static auto singleLevelCompile(size_t n) -> int {
+    log("Generating compilation results for single-level codes");
     log("Running n = " + std::to_string(n) + " shots");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "static_memory_compilation.csv";
+    constexpr std::string_view filename = "single_level_compilation.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,"
@@ -115,27 +167,27 @@ struct Cli {
     for (const uint32_t d : {3u, 5u, 7u, 9u}) {
       const SurfaceCode code(d, GP_DATA_PATH);
       const stim::Circuit circuit = code.getMemory(d, p);
-      runStaticCompile(n, "surface" + std::to_string(d), circuit, filename);
+      slCompile(n, "surface" + std::to_string(d), circuit, filename);
     }
 
     for (const uint32_t d : {6u, 10u, 12u}) {
       const BBCode code(d, GP_DATA_PATH);
       const stim::Circuit circuit = code.getMemory(d, p);
-      runStaticCompile(n, "bb" + std::to_string(d), circuit, filename);
+      slCompile(n, "bb" + std::to_string(d), circuit, filename);
     }
 
     log("Wrote " + csvPath(filename).string());
     return 0;
   }
 
-  /// @brief Generate static memory decoding results (Fig. 4).
-  HOST static auto staticDecode(uint64_t n, size_t j) -> int {
-    log("Generating static memory decoding results");
+  /// @brief Generate decoding results for single-level codes (Fig. 4).
+  HOST static auto singleLevelDecode(size_t n, size_t j) -> int {
+    log("Generating decoding results for single-level codes");
     log("Running n = " + std::to_string(n) + " shots");
     log("Using j = " + std::to_string(j) + " threads");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "static_memory_decoding.csv";
+    constexpr std::string_view filename = "single_level_decoding.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,"
@@ -147,47 +199,64 @@ struct Cli {
     for (const uint32_t d : {3u, 5u, 7u, 9u}) {
       const SurfaceCode code(d, GP_DATA_PATH);
       const stim::Circuit circuit = code.getMemory(d, p);
-      runStaticDecode(
-          n, "surface" + std::to_string(d), d, circuit, filename, j);
+      slDecode(n, "surface" + std::to_string(d), d, circuit, filename, j);
     }
 
     for (const uint32_t d : {6u, 10u, 12u}) {
       const BBCode code(d, GP_DATA_PATH);
       const stim::Circuit circuit = code.getMemory(d, p);
-      runStaticDecode(n, "bb" + std::to_string(d), d, circuit, filename, j);
+      slDecode(n, "bb" + std::to_string(d), d, circuit, filename, j);
     }
 
     log("Wrote " + csvPath(filename).string());
     return 0;
   }
 
-  /// @brief Generate adaptive memory compilation results (Fig. 6).
-  HOST static auto adaptiveCompile(uint64_t n) -> int {
-    log("Generating adaptive memory compilation results");
+  /// @brief Generate compilation results for multi-level codes (Fig. 6).
+  HOST static auto multiLevelCompile(size_t n) -> int {
+    log("Generating compilation results for multi-level codes");
     log("Running n = " + std::to_string(n) + " shots");
 
-    writeResultsCsvHeader("adaptive_memory_compilation.csv",
-                          "n,strategy,"
+    constexpr double p = 0.001;
+    constexpr std::string_view filename = "multi_level_compilation.csv";
+
+    writeResultsCsvHeader(filename,
+                          "n,code,strategy,"
                           "phe_tavg,phe_tstd,"
                           "gp0_tavg,gp0_tstd,"
                           "gp1_tavg,gp1_tstd,"
                           "gp2_tavg,gp2_tstd,"
                           "ref_tavg,ref_tstd");
 
-    log("Wrote " + csvPath("adaptive_memory_compilation.csv").string());
+    for (const uint32_t d : {4u, 6u, 8u, 10u}) {
+      ConcatenatedSurfaceCode code(d, GP_DATA_PATH);
+      mlCompile(n, "csc" + std::to_string(d), code, d, p, filename);
+    }
+
+    log("Wrote " + csvPath(filename).string());
     return 0;
   }
 
-  /// @brief Generate adaptive memory decoding results (Fig. 7).
-  HOST static auto adaptiveDecode(uint64_t n) -> int {
-    log("Generating adaptive memory decoding results");
+  /// @brief Generate decoding results for multi-level codes (Fig. 7).
+  HOST static auto multiLevelDecode(size_t n, size_t j) -> int {
+    log("Generating decoding results for multi-level codes");
     log("Running n = " + std::to_string(n) + " shots");
+    log("Using j = " + std::to_string(j) + " threads");
 
-    writeResultsCsvHeader("adaptive_memory_decoding.csv",
-                          "n,strategy,"
+    constexpr double p = 0.001;
+    constexpr std::string_view filename = "multi_level_decoding.csv";
+
+    writeResultsCsvHeader(filename,
+                          "n,code,strategy,"
                           "gp0_fails,gp0_tavg,gp0_tstd,"
                           "phe_fails,phe_tavg,phe_tstd");
-    log("Wrote " + csvPath("adaptive_memory_decoding.csv").string());
+
+    for (const uint32_t d : {4u, 6u, 8u, 10u}) {
+      ConcatenatedSurfaceCode code(d, GP_DATA_PATH);
+      mlDecode(n, "csc" + std::to_string(d), code, d, p, filename, j);
+    }
+
+    log("Wrote " + csvPath(filename).string());
     return 0;
   }
 
@@ -207,33 +276,69 @@ struct Cli {
 
   /// @brief Compile DEM for @p circuit with GreenPeas @p n times.
   template <CorrelationLevel Level>
-  HOST static auto compileDEM(const stim::Circuit &circuit, uint64_t n) -> SCO {
+  HOST static auto compileDEM(const stim::Circuit &circuit, size_t n) -> SLCO {
     auto driver = CompilerDriver<Level>::fromStimCircuit(circuit);
 
     // warmup
     (void)driver.compileDetectorErrorModel(circuit);
 
-    return SCO{time<Duration>(static_cast<size_t>(n), true, [&] {
-      (void)driver.compileDetectorErrorModel(circuit);
-    })};
+    return SLCO{time<Duration>(
+        n, true, [&] { (void)driver.compileDetectorErrorModel(circuit); })};
+  }
+
+  /// @brief Compile DEM for each circuit in @p batch with GreenPeas once.
+  template <CorrelationLevel Level>
+  HOST static auto compileDEM(const std::vector<stim::Circuit> &batch) -> MLCO {
+    auto driver = CompilerDriver<Level>::fromStimCircuit(batch.front());
+
+    // warmup on max circuit
+    (void)driver.compileDetectorErrorModel(batch.front());
+
+    Times times;
+    times.reserve(batch.size() - 1); // exclude max circuit
+
+    // time everything except the max circuit at index 0
+    for (size_t i = 1; i < batch.size(); ++i) {
+      times.push_back(timeOnce<Duration>(
+          [&] { (void)driver.compileDetectorErrorModel(batch[i]); }));
+    }
+
+    return MLCO{timingStats(times)};
   }
 
   /// @brief Compile DEM for @p circuit with Stim @p n times.
-  HOST static auto compileREF(const stim::Circuit &circuit, uint64_t n) -> SCO {
+  HOST static auto compileREF(const stim::Circuit &circuit, size_t n) -> SLCO {
     // warmup
     (void)compileWithStim(circuit);
 
-    return SCO{time<Duration>(
-        static_cast<size_t>(n), true, [&] { (void)compileWithStim(circuit); })};
+    return SLCO{
+        time<Duration>(n, true, [&] { (void)compileWithStim(circuit); })};
   }
 
-  /// @brief Time GreenPeas L0–L2 and Stim DEM compile for one code; append CSV.
-  HOST static void runStaticCompile(uint64_t n,
-                                    std::string_view code,
-                                    const stim::Circuit &circuit,
-                                    std::string_view filename) {
+  /// @brief Compile DEM for each circuit in @p batch with Stim once.
+  HOST static auto compileREF(const std::vector<stim::Circuit> &batch) -> MLCO {
+    // warmup on max circuit
+    (void)compileWithStim(batch.front());
+
+    Times times;
+    times.reserve(batch.size() - 1); // exclude max circuit
+
+    // time everything except the max circuit at index 0
+    for (size_t i = 1; i < batch.size(); ++i) {
+      times.push_back(
+          timeOnce<Duration>([&] { (void)compileWithStim(batch[i]); }));
+    }
+
+    return MLCO{timingStats(times)};
+  }
+
+  /// @brief Compile paths for one single-level code.
+  HOST static void slCompile(size_t n,
+                             std::string_view code,
+                             const stim::Circuit &circuit,
+                             std::string_view filename) {
     log("Evaluating " + std::string(code));
-    SCR row;
+    SLCR row;
     row.n = n;
     row.code = std::string(code);
     row.gp0 = compileDEM<CorrelationLevel::L0>(circuit, n);
@@ -241,6 +346,57 @@ struct Cli {
     row.gp2 = compileDEM<CorrelationLevel::L2>(circuit, n);
     row.ref = compileREF(circuit, n);
     appendResultsCsvRow(filename, stringOf(row));
+  }
+
+  /// @brief Compile paths for one multi-level code.
+  HOST static void mlCompile(size_t n,
+                             std::string_view code,
+                             ConcatenatedSurfaceCode &csc,
+                             uint32_t d,
+                             double p,
+                             std::string_view filename) {
+    auto [maxPair, maxShot] = csc.getMemory(d, p, MeasurementStrategy::Static);
+    (void)maxShot;
+
+    {
+      log("Evaluating " + std::string(code) + "/static");
+      MLCR row;
+      row.n = n;
+      row.code = std::string(code);
+      row.strategy = "static";
+      row.phe = compileDEM<CorrelationLevel::L0>(maxPair.pheno, n);
+      row.gp0 = compileDEM<CorrelationLevel::L0>(maxPair.circl, n);
+      row.gp1 = compileDEM<CorrelationLevel::L1>(maxPair.circl, n);
+      row.gp2 = compileDEM<CorrelationLevel::L2>(maxPair.circl, n);
+      row.ref = compileREF(maxPair.circl, n);
+      appendResultsCsvRow(filename, stringOf(row));
+    }
+
+    {
+      log("Evaluating " + std::string(code) + "/adaptive");
+      std::vector<stim::Circuit> circlBatch;
+      std::vector<stim::Circuit> phenoBatch;
+      circlBatch.reserve(n + 1);
+      phenoBatch.reserve(n + 1);
+      circlBatch.push_back(std::move(maxPair.circl));
+      phenoBatch.push_back(std::move(maxPair.pheno));
+      for (size_t i = 0; i < n; ++i) {
+        auto [pair, shot] = csc.getMemory(d, p, MeasurementStrategy::Adaptive);
+        (void)shot;
+        circlBatch.push_back(std::move(pair.circl));
+        phenoBatch.push_back(std::move(pair.pheno));
+      }
+      MLCR row;
+      row.n = n;
+      row.code = std::string(code);
+      row.strategy = "adaptive";
+      row.phe = compileDEM<CorrelationLevel::L0>(phenoBatch);
+      row.gp0 = compileDEM<CorrelationLevel::L0>(circlBatch);
+      row.gp1 = compileDEM<CorrelationLevel::L1>(circlBatch);
+      row.gp2 = compileDEM<CorrelationLevel::L2>(circlBatch);
+      row.ref = compileREF(circlBatch);
+      appendResultsCsvRow(filename, stringOf(row));
+    }
   }
 
   // == Decode helpers ========================================================
@@ -308,6 +464,39 @@ struct Cli {
     return {std::move(preds), std::move(times)};
   }
 
+  /// @brief Decode @p shots with per-shot configs and up to @p j threads.
+  HOST static auto decodeShots(const std::vector<TesseractConfig> &configs,
+                               const Shots &shots,
+                               size_t j) -> std::pair<Preds, Times> {
+    Preds preds(shots.size());
+    Times times(shots.size());
+
+    const auto nThreads = std::max<size_t>(1, std::min(j, shots.size()));
+    std::vector<std::thread> threads;
+    threads.reserve(nThreads);
+
+    std::atomic<size_t> shot{0};
+
+    for (size_t t = 0; t < nThreads; ++t) {
+      threads.emplace_back([&] {
+        for (size_t i; (i = shot++) < shots.size();) {
+          TesseractDecoder decoder(configs[i]);
+          times[i] = timeOnce<Duration>([&] {
+            decoder.decode_to_errors(shots[i].hits);
+            auto &predictedErrors = decoder.predicted_errors_buffer;
+            preds[i] = decoder.get_flipped_observables(predictedErrors);
+          });
+        }
+      });
+    }
+
+    for (auto &th : threads) {
+      th.join();
+    }
+
+    return {std::move(preds), std::move(times)};
+  }
+
   /// @brief Count shots whose predicted observables disagree with the obs mask.
   HOST static auto fails(const Shots &shots, const Preds &preds) -> size_t {
     size_t nFails = 0;
@@ -327,22 +516,60 @@ struct Cli {
   }
 
   /// @brief Decode @p shots under @p dem with @p j threads.
-  HOST static auto decode(const DEM &dem, const Shots &shots, size_t j) -> SDO {
+  HOST static auto decode(const DEM &dem, const Shots &shots, size_t j)
+      -> SLDO {
     const auto config = tesseractConfig(dem);
     const auto [preds, times] = decodeShots(config, shots, j);
-    return SDO{fails(shots, preds), timingStats(times)};
+    return SLDO{fails(shots, preds), timingStats(times)};
   }
 
-  /// @brief Decode one code with GreenPeas L0–L2 and Stim DEMs.
-  HOST static void runStaticDecode(uint64_t n,
-                                   std::string_view code,
-                                   uint32_t d,
-                                   const stim::Circuit &circuit,
-                                   std::string_view filename,
-                                   size_t j) {
+  /// @brief Decode @p shots under @p dem and append preds/times.
+  HOST static void decode(const DEM &dem,
+                          const Shots &shots,
+                          size_t j,
+                          Preds &allPreds,
+                          Times &allTimes) {
+    const auto config = tesseractConfig(dem);
+    auto [preds, times] = decodeShots(config, shots, j);
+    allPreds.insert(allPreds.end(),
+                    std::make_move_iterator(preds.begin()),
+                    std::make_move_iterator(preds.end()));
+    allTimes.insert(allTimes.end(),
+                    std::make_move_iterator(times.begin()),
+                    std::make_move_iterator(times.end()));
+  }
+
+  /// @brief Decode @p shots under per-shot @p dems and append preds/times.
+  HOST static void decode(const std::vector<DEM> &dems,
+                          const Shots &shots,
+                          size_t j,
+                          Preds &allPreds,
+                          Times &allTimes) {
+    std::vector<TesseractConfig> configs;
+    configs.reserve(dems.size());
+    for (const auto &dem : dems) {
+      configs.push_back(tesseractConfig(dem));
+    }
+
+    auto [preds, times] = decodeShots(configs, shots, j);
+    allPreds.insert(allPreds.end(),
+                    std::make_move_iterator(preds.begin()),
+                    std::make_move_iterator(preds.end()));
+    allTimes.insert(allTimes.end(),
+                    std::make_move_iterator(times.begin()),
+                    std::make_move_iterator(times.end()));
+  }
+
+  /// @brief Decode paths for one single-level code.
+  HOST static void slDecode(size_t n,
+                            std::string_view code,
+                            uint32_t d,
+                            const stim::Circuit &circuit,
+                            std::string_view filename,
+                            size_t j) {
     log("Evaluating " + std::string(code));
 
-    const auto shots = sample(circuit, static_cast<size_t>(n));
+    const auto shots = sample(circuit, n);
 
     using Driver0 = Driver<Storage, Compute, Layout, CorrelationLevel::L0>;
     using Driver1 = Driver<Storage, Compute, Layout, CorrelationLevel::L1>;
@@ -352,7 +579,7 @@ struct Cli {
     auto driver1 = Driver1::fromStimCircuit(circuit);
     auto driver2 = Driver2::fromStimCircuit(circuit);
 
-    SDR row;
+    SLDR row;
     row.n = n;
     row.code = std::string(code);
     row.gp0 = decode(driver0.compileDetectorErrorModel(circuit), shots, j);
@@ -361,6 +588,130 @@ struct Cli {
     row.ref = decode(compileWithStim(circuit), shots, j);
 
     appendResultsCsvRow(filename, stringOf(row));
+  }
+
+  /// @brief Decode paths for one multi-level code.
+  HOST static void mlDecode(size_t n,
+                            std::string_view code,
+                            ConcatenatedSurfaceCode &csc,
+                            uint32_t d,
+                            double p,
+                            std::string_view filename,
+                            size_t j) {
+    using Driver0 = Driver<Storage, Compute, Layout, CorrelationLevel::L0>;
+    const size_t batchSize = std::max<size_t>(1, j);
+    MeasurementStrategy strategy = MeasurementStrategy::Static;
+
+    Shots shots;
+    Shots chunk;
+
+    Preds gp0Preds;
+    Preds phePreds;
+    Times gp0Times;
+    Times pheTimes;
+
+    std::vector<DEM> circlDems;
+    std::vector<DEM> phenoDems;
+
+    shots.reserve(n);
+    chunk.reserve(batchSize);
+
+    gp0Preds.reserve(n);
+    phePreds.reserve(n);
+    gp0Times.reserve(n);
+    pheTimes.reserve(n);
+
+    circlDems.reserve(batchSize);
+    phenoDems.reserve(batchSize);
+
+    CircuitPair pair;
+    stim::SparseShot shot;
+
+    // warmup drivers
+    std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+    auto circlDriver = Driver0::fromStimCircuit(pair.circl);
+    auto phenoDriver = Driver0::fromStimCircuit(pair.pheno);
+    DEM circlDem = circlDriver.compileDetectorErrorModel(pair.circl);
+    DEM phenoDem = phenoDriver.compileDetectorErrorModel(pair.pheno);
+
+    {
+      log("Evaluating " + std::string(code) + "/static");
+
+      shots.clear();
+      gp0Preds.clear();
+      phePreds.clear();
+      gp0Times.clear();
+      pheTimes.clear();
+
+      for (size_t offset = 0; offset < n; offset += batchSize) {
+        const size_t chunkSize = std::min(batchSize, n - offset);
+
+        chunk.clear();
+
+        for (size_t i = 0; i < chunkSize; ++i) {
+          std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+          chunk.push_back(std::move(shot));
+        }
+
+        decode(circlDem, chunk, j, gp0Preds, gp0Times);
+        decode(phenoDem, chunk, j, phePreds, pheTimes);
+
+        shots.insert(shots.end(),
+                     std::make_move_iterator(chunk.begin()),
+                     std::make_move_iterator(chunk.end()));
+      }
+
+      MLDR row;
+      row.n = n;
+      row.code = std::string(code);
+      row.strategy = "static";
+      row.gp0 = MLDO{fails(shots, gp0Preds), timingStats(gp0Times)};
+      row.phe = MLDO{fails(shots, phePreds), timingStats(pheTimes)};
+      appendResultsCsvRow(filename, stringOf(row));
+    }
+
+    {
+      strategy = MeasurementStrategy::Adaptive;
+      log("Evaluating " + std::string(code) + "/adaptive");
+
+      shots.clear();
+      gp0Preds.clear();
+      phePreds.clear();
+      gp0Times.clear();
+      pheTimes.clear();
+
+      for (size_t offset = 0; offset < n; offset += batchSize) {
+        const size_t chunkSize = std::min(batchSize, n - offset);
+
+        chunk.clear();
+        circlDems.clear();
+        phenoDems.clear();
+
+        for (size_t i = 0; i < chunkSize; ++i) {
+          std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+          chunk.push_back(std::move(shot));
+          circlDem = circlDriver.compileDetectorErrorModel(pair.circl);
+          phenoDem = phenoDriver.compileDetectorErrorModel(pair.pheno);
+          circlDems.push_back(std::move(circlDem));
+          phenoDems.push_back(std::move(phenoDem));
+        }
+
+        decode(circlDems, chunk, j, gp0Preds, gp0Times);
+        decode(phenoDems, chunk, j, phePreds, pheTimes);
+
+        shots.insert(shots.end(),
+                     std::make_move_iterator(chunk.begin()),
+                     std::make_move_iterator(chunk.end()));
+      }
+
+      MLDR row;
+      row.n = n;
+      row.code = std::string(code);
+      row.strategy = "adaptive";
+      row.gp0 = MLDO{fails(shots, gp0Preds), timingStats(gp0Times)};
+      row.phe = MLDO{fails(shots, phePreds), timingStats(pheTimes)};
+      appendResultsCsvRow(filename, stringOf(row));
+    }
   }
 };
 

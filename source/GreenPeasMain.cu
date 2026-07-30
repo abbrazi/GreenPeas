@@ -1,6 +1,5 @@
 /// Standard headers
 #include <algorithm>
-#include <cstdint>
 #include <iostream>
 #include <thread>
 
@@ -22,43 +21,52 @@ auto gpMain(int argc, char **argv) -> int {
   app.require_subcommand(1);
   app.get_formatter()->column_width(50);
 
-  uint64_t shots = 0;
+  size_t shots = 0;
   size_t threads = std::max<size_t>(1, std::thread::hardware_concurrency());
 
-  auto *staticCompile = app.add_subcommand(
-      "static-compile", "Generate static memory compilation results (Fig. 3).");
-  staticCompile->add_option("-n,--shots", shots, "Number of shots")->required();
+  auto *singleLevelCompile = app.add_subcommand(
+      "single-level-compile",
+      "Generate compilation results for single-level codes.");
+  singleLevelCompile->add_option("-n,--shots", shots, "Number of shots")
+      ->required();
 
-  auto *staticDecode = app.add_subcommand(
-      "static-decode", "Generate static memory decoding results (Fig. 4).");
-  staticDecode->add_option("-n,--shots", shots, "Number of shots")->required();
-  staticDecode->add_option("-j,--threads", threads, "Number of decode threads")
+  auto *singleLevelDecode = app.add_subcommand(
+      "single-level-decode",
+      "Generate decoding results for single-level codes.");
+  singleLevelDecode->add_option("-n,--shots", shots, "Number of shots")
+      ->required();
+  singleLevelDecode
+      ->add_option("-j,--threads", threads, "Number of decode threads")
       ->capture_default_str();
 
-  auto *adaptiveCompile = app.add_subcommand(
-      "adaptive-compile",
-      "Generate adaptive memory compilation results (Fig. 6).");
-  adaptiveCompile->add_option("-n,--shots", shots, "Number of shots")
+  auto *multiLevelCompile = app.add_subcommand(
+      "multi-level-compile",
+      "Generate compilation results for multi-level codes.");
+  multiLevelCompile->add_option("-n,--shots", shots, "Number of shots")
       ->required();
 
-  auto *adaptiveDecode = app.add_subcommand(
-      "adaptive-decode", "Generate adaptive memory decoding results (Fig. 7).");
-  adaptiveDecode->add_option("-n,--shots", shots, "Number of shots")
+  auto *multiLevelDecode = app.add_subcommand(
+      "multi-level-decode",
+      "Generate decoding results for multi-level codes.");
+  multiLevelDecode->add_option("-n,--shots", shots, "Number of shots")
       ->required();
+  multiLevelDecode
+      ->add_option("-j,--threads", threads, "Number of decode threads")
+      ->capture_default_str();
 
   CLI11_PARSE(app, argc, argv);
 
-  if (*staticCompile) {
-    return CUDACli::staticCompile(shots);
+  if (*singleLevelCompile) {
+    return CUDACli::singleLevelCompile(shots);
   }
-  if (*staticDecode) {
-    return CUDACli::staticDecode(shots, threads);
+  if (*singleLevelDecode) {
+    return CUDACli::singleLevelDecode(shots, threads);
   }
-  if (*adaptiveCompile) {
-    return CUDACli::adaptiveCompile(shots);
+  if (*multiLevelCompile) {
+    return CUDACli::multiLevelCompile(shots);
   }
-  if (*adaptiveDecode) {
-    return CUDACli::adaptiveDecode(shots);
+  if (*multiLevelDecode) {
+    return CUDACli::multiLevelDecode(shots, threads);
   }
 
   std::cerr << "No matching subcommand.\n";

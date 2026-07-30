@@ -33,26 +33,26 @@ List commands:
 ./build/gp --help
 ```
 
-Subcommands (stubs until result generation is wired up):
+Subcommands:
 
 | Command | Figure |
 | --- | --- |
-| `gen-static-memory-compilation-results` | Fig. 3 |
-| `gen-static-memory-decoding-results` | Fig. 4 |
-| `gen-adaptive-memory-compilation-results` | Fig. 6 |
-| `gen-adaptive-memory-decoding-results` | Fig. 7 |
+| `single-level-compile` | Fig. 3 |
+| `single-level-decode` | Fig. 4 |
+| `multi-level-compile` | Fig. 6 |
+| `multi-level-decode` | Fig. 7 |
 
 Example:
 
 ```sh
-./build/gp gen-static-memory-compilation-results -n 1000
+./build/gp single-level-compile -n 1000
 ```
 
-Each subcommand writes a CSV header under `data/results/`:
+Each subcommand writes a CSV under `data/ae/`:
 
 | Command | Output |
 | --- | --- |
-| `gen-static-memory-compilation-results` | `data/results/static_memory_compilation.csv` |
-| `gen-static-memory-decoding-results` | `data/results/static_memory_decoding.csv` |
-| `gen-adaptive-memory-compilation-results` | `data/results/adaptive_memory_compilation.csv` |
-| `gen-adaptive-memory-decoding-results` | `data/results/adaptive_memory_decoding.csv` |
+| `single-level-compile` | `data/ae/single_level_compilation.csv` |
+| `single-level-decode` | `data/ae/single_level_decoding.csv` |
+| `multi-level-compile` | `data/ae/multi_level_compilation.csv` |
+| `multi-level-decode` | `data/ae/multi_level_decoding.csv` |
