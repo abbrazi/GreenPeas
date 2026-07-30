@@ -36,10 +36,24 @@ def test_driver_compile_detector_error_model(
     reference_path = DATA / "dems" / f"{name}_{level.name}.dem"
 
     circuit = code.get_memory(rounds=distance, p=0.001)
-    
+
     driver = get_driver(circuit, correlation_level=level)
     actual = driver.compile_detector_error_model(circuit)
 
     expected = stim.DetectorErrorModel.from_file(str(reference_path))
-    
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize("level", CORRELATION_LEVELS)
+def test_driver_reuse(level: CorrelationLevel) -> None:
+    """A driver sized for d5 can compile a d3 circuit."""
+    d5_circuit = SurfaceCode(5).get_memory(rounds=5, p=0.001)
+    d3_circuit = SurfaceCode(3).get_memory(rounds=3, p=0.001)
+    reference_path = DATA / "dems" / f"surface3_{level.name}.dem"
+
+    driver = get_driver(d5_circuit, correlation_level=level)
+    actual = driver.compile_detector_error_model(d3_circuit)
+
+    expected = stim.DetectorErrorModel.from_file(str(reference_path))
     assert actual == expected

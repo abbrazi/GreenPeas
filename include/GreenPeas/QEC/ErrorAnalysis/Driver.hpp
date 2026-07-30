@@ -201,6 +201,13 @@ struct Driver {
     return getDetectorErrorModel();
   }
 
+  /// @brief Compile the currently parsed circuit and return its DEM.
+  /// @return Compiled Stim `DetectorErrorModel`.
+  HOST auto compileDetectorErrorModel() -> stim::DetectorErrorModel {
+    compile();
+    return getDetectorErrorModel();
+  }
+
   /// @brief Construct a driver by parsing @p stimCircuit.
   /// @param stimCircuit Input Stim circuit.
   /// @return Driver owning the parsed SM circuit and workspaces.

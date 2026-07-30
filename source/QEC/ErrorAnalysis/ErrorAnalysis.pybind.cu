@@ -63,7 +63,11 @@ void bindErrorAnalysis(py::module_ &error_analysis) {
                 },
                 driver));
           },
-          py::arg("circuit"));
+          py::arg("circuit"))
+      .def("compile_detector_error_model", [](CUDADriverVariant &driver) {
+        return demToPython(std::visit(
+            [](auto &d) { return d.compileDetectorErrorModel(); }, driver));
+      });
 
   error_analysis.def(
       "get_driver",
