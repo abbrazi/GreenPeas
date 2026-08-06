@@ -19,9 +19,9 @@ option(GP_USE_CUDA "Build GreenPeas with CUDA" OFF)
 
 set(
   GP_CUDA_ARCHITECTURES
-  "86"
+  "120"
   CACHE STRING
-  "CUDA architectures (default: 86/Ampere)."
+  "CUDA architectures (default: 120/Blackwell)."
 )
 
 if(GP_USE_CUDA)
@@ -83,6 +83,7 @@ target_compile_definitions(
   gp
   PRIVATE
   GP_DATA_PATH="${CMAKE_SOURCE_DIR}/data"
+  GP_RESULTS_PATH="${CMAKE_SOURCE_DIR}/ae/results"
 )
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)

@@ -142,8 +142,8 @@ struct Cli {
   /// @brief Serialise an MLDR.
   HOST static auto stringOf(const MLDR &r) -> std::string {
     std::ostringstream out;
-    out << r.n << ',' << r.code << ',' << r.strategy << ',' << r.gp0.fails
-        << ',' << r.gp0.timing << ',' << r.phe.fails << ',' << r.phe.timing;
+    out << r.n << ',' << r.code << ',' << r.strategy << ',' << r.phe.fails
+        << ',' << r.phe.timing << ',' << r.gp0.fails << ',' << r.gp0.timing;
     return out.str();
   }
 
@@ -155,7 +155,7 @@ struct Cli {
     log("Running n = " + std::to_string(n) + " shots");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "single_level_compilation.csv";
+    constexpr std::string_view filename = "single_level_compile.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,"
@@ -166,14 +166,22 @@ struct Cli {
 
     for (const uint32_t d : {3u, 5u, 7u, 9u}) {
       const SurfaceCode code(d, GP_DATA_PATH);
-      const stim::Circuit circuit = code.getMemory(d, p);
-      slCompile(n, "surface" + std::to_string(d), circuit, filename);
+      // L0 Z-basis experiments exclude X-detectors.
+      const stim::Circuit circuitNoX =
+          code.getMemory(d, p, /*includeXDetectors=*/false);
+      const stim::Circuit circuit =
+          code.getMemory(d, p, /*includeXDetectors=*/true);
+      slCompile(
+          n, "surface" + std::to_string(d), circuitNoX, circuit, filename);
     }
 
     for (const uint32_t d : {6u, 10u, 12u}) {
       const BBCode code(d, GP_DATA_PATH);
-      const stim::Circuit circuit = code.getMemory(d, p);
-      slCompile(n, "bb" + std::to_string(d), circuit, filename);
+      const stim::Circuit circuitNoX =
+          code.getMemory(d, p, /*includeXDetectors=*/false);
+      const stim::Circuit circuit =
+          code.getMemory(d, p, /*includeXDetectors=*/true);
+      slCompile(n, "bb" + std::to_string(d), circuitNoX, circuit, filename);
     }
 
     log("Wrote " + csvPath(filename).string());
@@ -187,7 +195,7 @@ struct Cli {
     log("Using j = " + std::to_string(j) + " threads");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "single_level_decoding.csv";
+    constexpr std::string_view filename = "single_level_decode.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,"
@@ -198,14 +206,21 @@ struct Cli {
 
     for (const uint32_t d : {3u, 5u, 7u, 9u}) {
       const SurfaceCode code(d, GP_DATA_PATH);
-      const stim::Circuit circuit = code.getMemory(d, p);
-      slDecode(n, "surface" + std::to_string(d), d, circuit, filename, j);
+      const stim::Circuit circuitNoX =
+          code.getMemory(d, p, /*includeXDetectors=*/false);
+      const stim::Circuit circuit =
+          code.getMemory(d, p, /*includeXDetectors=*/true);
+      slDecode(
+          n, "surface" + std::to_string(d), circuitNoX, circuit, filename, j);
     }
 
     for (const uint32_t d : {6u, 10u, 12u}) {
       const BBCode code(d, GP_DATA_PATH);
-      const stim::Circuit circuit = code.getMemory(d, p);
-      slDecode(n, "bb" + std::to_string(d), d, circuit, filename, j);
+      const stim::Circuit circuitNoX =
+          code.getMemory(d, p, /*includeXDetectors=*/false);
+      const stim::Circuit circuit =
+          code.getMemory(d, p, /*includeXDetectors=*/true);
+      slDecode(n, "bb" + std::to_string(d), circuitNoX, circuit, filename, j);
     }
 
     log("Wrote " + csvPath(filename).string());
@@ -218,7 +233,7 @@ struct Cli {
     log("Running n = " + std::to_string(n) + " shots");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "multi_level_compilation.csv";
+    constexpr std::string_view filename = "multi_level_compile.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,strategy,"
@@ -244,12 +259,12 @@ struct Cli {
     log("Using j = " + std::to_string(j) + " threads");
 
     constexpr double p = 0.001;
-    constexpr std::string_view filename = "multi_level_decoding.csv";
+    constexpr std::string_view filename = "multi_level_decode.csv";
 
     writeResultsCsvHeader(filename,
                           "n,code,strategy,"
-                          "gp0_fails,gp0_tavg,gp0_tstd,"
-                          "phe_fails,phe_tavg,phe_tstd");
+                          "phe_fails,phe_tavg,phe_tstd,"
+                          "gp0_fails,gp0_tavg,gp0_tstd");
 
     for (const uint32_t d : {4u, 6u, 8u, 10u}) {
       ConcatenatedSurfaceCode code(d, GP_DATA_PATH);
@@ -286,27 +301,6 @@ struct Cli {
         n, true, [&] { (void)driver.compileDetectorErrorModel(); })};
   }
 
-  /// @brief Compile DEM for each circuit in @p batch with GreenPeas once.
-  template <CorrelationLevel Level>
-  HOST static auto compileDEM(const std::vector<stim::Circuit> &batch) -> MLCO {
-    auto driver = CompilerDriver<Level>::fromStimCircuit(batch.front());
-
-    // warmup on max circuit
-    (void)driver.compileDetectorErrorModel();
-
-    Times times;
-    times.reserve(batch.size() - 1); // exclude max circuit
-
-    // time everything except the max circuit at index 0
-    for (size_t i = 1; i < batch.size(); ++i) {
-      driver.circuit.parseFromStimCircuit(batch[i]);
-      times.push_back(timeOnce<Duration>(
-          [&] { (void)driver.compileDetectorErrorModel(); }));
-    }
-
-    return MLCO{timingStats(times)};
-  }
-
   /// @brief Compile DEM for @p circuit with Stim @p n times.
   HOST static auto compileREF(const stim::Circuit &circuit, size_t n) -> SLCO {
     // warmup
@@ -316,33 +310,19 @@ struct Cli {
         time<Duration>(n, true, [&] { (void)compileWithStim(circuit); })};
   }
 
-  /// @brief Compile DEM for each circuit in @p batch with Stim once.
-  HOST static auto compileREF(const std::vector<stim::Circuit> &batch) -> MLCO {
-    // warmup on max circuit
-    (void)compileWithStim(batch.front());
-
-    Times times;
-    times.reserve(batch.size() - 1); // exclude max circuit
-
-    // time everything except the max circuit at index 0
-    for (size_t i = 1; i < batch.size(); ++i) {
-      times.push_back(
-          timeOnce<Duration>([&] { (void)compileWithStim(batch[i]); }));
-    }
-
-    return MLCO{timingStats(times)};
-  }
-
   /// @brief Compile paths for one single-level code.
+  /// @param circuitNoX Z-basis circuit without X-detectors (for L0).
+  /// @param circuit Full circuit with X-detectors (for L1/L2/Stim).
   HOST static void slCompile(size_t n,
                              std::string_view code,
+                             const stim::Circuit &circuitNoX,
                              const stim::Circuit &circuit,
                              std::string_view filename) {
     log("Evaluating " + std::string(code));
     SLCR row;
     row.n = n;
     row.code = std::string(code);
-    row.gp0 = compileDEM<CorrelationLevel::L0>(circuit, n);
+    row.gp0 = compileDEM<CorrelationLevel::L0>(circuitNoX, n);
     row.gp1 = compileDEM<CorrelationLevel::L1>(circuit, n);
     row.gp2 = compileDEM<CorrelationLevel::L2>(circuit, n);
     row.ref = compileREF(circuit, n);
@@ -356,8 +336,26 @@ struct Cli {
                              uint32_t d,
                              double p,
                              std::string_view filename) {
-    auto [maxPair, maxShot] = csc.getMemory(d, p, MeasurementStrategy::Static);
+    // L0 Z-basis experiments exclude X-detectors.
+    auto [maxPairNoX, maxShotNoX] = csc.getMemory(
+        d, p, MeasurementStrategy::Static, /*includeXDetectors=*/false);
+    auto [maxPair, maxShot] = csc.getMemory(
+        d, p, MeasurementStrategy::Static, /*includeXDetectors=*/true);
+    (void)maxShotNoX;
     (void)maxShot;
+
+    // Drivers constructed once from max circuits; reused for static + adaptive.
+    auto driver0 =
+        CompilerDriver<CorrelationLevel::L0>::fromStimCircuit(maxPairNoX.circl);
+    auto driver1 =
+        CompilerDriver<CorrelationLevel::L1>::fromStimCircuit(maxPair.circl);
+    auto driver2 =
+        CompilerDriver<CorrelationLevel::L2>::fromStimCircuit(maxPair.circl);
+    (void)driver0.compileDetectorErrorModel();
+    (void)driver1.compileDetectorErrorModel();
+    (void)driver2.compileDetectorErrorModel();
+    (void)compileWithStim(maxPairNoX.pheno);
+    (void)compileWithStim(maxPair.circl);
 
     {
       log("Evaluating " + std::string(code) + "/static");
@@ -365,37 +363,70 @@ struct Cli {
       row.n = n;
       row.code = std::string(code);
       row.strategy = "static";
-      row.phe = compileDEM<CorrelationLevel::L0>(maxPair.pheno, n);
-      row.gp0 = compileDEM<CorrelationLevel::L0>(maxPair.circl, n);
-      row.gp1 = compileDEM<CorrelationLevel::L1>(maxPair.circl, n);
-      row.gp2 = compileDEM<CorrelationLevel::L2>(maxPair.circl, n);
-      row.ref = compileREF(maxPair.circl, n);
+      // phe: Stim on phenomenological circuit (traditional toolchain baseline)
+      row.phe = SLCO{time<Duration>(
+          n, true, [&] { (void)compileWithStim(maxPairNoX.pheno); })};
+      row.gp0 = SLCO{time<Duration>(
+          n, true, [&] { (void)driver0.compileDetectorErrorModel(); })};
+      row.gp1 = SLCO{time<Duration>(
+          n, true, [&] { (void)driver1.compileDetectorErrorModel(); })};
+      row.gp2 = SLCO{time<Duration>(
+          n, true, [&] { (void)driver2.compileDetectorErrorModel(); })};
+      row.ref = SLCO{time<Duration>(
+          n, true, [&] { (void)compileWithStim(maxPair.circl); })};
       appendResultsCsvRow(filename, stringOf(row));
     }
 
     {
       log("Evaluating " + std::string(code) + "/adaptive");
-      std::vector<stim::Circuit> circlBatch;
-      std::vector<stim::Circuit> phenoBatch;
-      circlBatch.reserve(n + 1);
-      phenoBatch.reserve(n + 1);
-      circlBatch.push_back(std::move(maxPair.circl));
-      phenoBatch.push_back(std::move(maxPair.pheno));
+      Times pheTimes;
+      Times gp0Times;
+      Times gp1Times;
+      Times gp2Times;
+      Times refTimes;
+      pheTimes.reserve(n);
+      gp0Times.reserve(n);
+      gp1Times.reserve(n);
+      gp2Times.reserve(n);
+      refTimes.reserve(n);
+
+      CircuitPair pairNoX;
+      CircuitPair pair;
+      stim::SparseShot shotNoX;
+      stim::SparseShot shot;
+
       for (size_t i = 0; i < n; ++i) {
-        auto [pair, shot] = csc.getMemory(d, p, MeasurementStrategy::Adaptive);
+        std::tie(pairNoX, shotNoX) = csc.getMemory(
+            d, p, MeasurementStrategy::Adaptive, /*includeXDetectors=*/false);
+        std::tie(pair, shot) = csc.getMemory(
+            d, p, MeasurementStrategy::Adaptive, /*includeXDetectors=*/true);
+        (void)shotNoX;
         (void)shot;
-        circlBatch.push_back(std::move(pair.circl));
-        phenoBatch.push_back(std::move(pair.pheno));
+
+        pheTimes.push_back(
+            timeOnce<Duration>([&] { (void)compileWithStim(pairNoX.pheno); }));
+        driver0.circuit.parseFromStimCircuit(pairNoX.circl);
+        gp0Times.push_back(timeOnce<Duration>(
+            [&] { (void)driver0.compileDetectorErrorModel(); }));
+        driver1.circuit.parseFromStimCircuit(pair.circl);
+        gp1Times.push_back(timeOnce<Duration>(
+            [&] { (void)driver1.compileDetectorErrorModel(); }));
+        driver2.circuit.parseFromStimCircuit(pair.circl);
+        gp2Times.push_back(timeOnce<Duration>(
+            [&] { (void)driver2.compileDetectorErrorModel(); }));
+        refTimes.push_back(
+            timeOnce<Duration>([&] { (void)compileWithStim(pair.circl); }));
       }
+
       MLCR row;
       row.n = n;
       row.code = std::string(code);
       row.strategy = "adaptive";
-      row.phe = compileDEM<CorrelationLevel::L0>(phenoBatch);
-      row.gp0 = compileDEM<CorrelationLevel::L0>(circlBatch);
-      row.gp1 = compileDEM<CorrelationLevel::L1>(circlBatch);
-      row.gp2 = compileDEM<CorrelationLevel::L2>(circlBatch);
-      row.ref = compileREF(circlBatch);
+      row.phe = MLCO{timingStats(pheTimes)};
+      row.gp0 = MLCO{timingStats(gp0Times)};
+      row.gp1 = MLCO{timingStats(gp1Times)};
+      row.gp2 = MLCO{timingStats(gp2Times)};
+      row.ref = MLCO{timingStats(refTimes)};
       appendResultsCsvRow(filename, stringOf(row));
     }
   }
@@ -562,28 +593,32 @@ struct Cli {
   }
 
   /// @brief Decode paths for one single-level code.
+  /// @param circuitNoX Z-basis circuit without X-detectors (for L0).
+  /// @param circuit Full circuit with X-detectors (for L1/L2/Stim).
   HOST static void slDecode(size_t n,
                             std::string_view code,
-                            uint32_t d,
+                            const stim::Circuit &circuitNoX,
                             const stim::Circuit &circuit,
                             std::string_view filename,
                             size_t j) {
     log("Evaluating " + std::string(code));
 
+    const auto shotsNoX = sample(circuitNoX, n);
     const auto shots = sample(circuit, n);
 
     using Driver0 = Driver<Storage, Compute, Layout, CorrelationLevel::L0>;
     using Driver1 = Driver<Storage, Compute, Layout, CorrelationLevel::L1>;
     using Driver2 = Driver<Storage, Compute, Layout, CorrelationLevel::L2>;
 
-    auto driver0 = Driver0::fromStimCircuit(circuit);
+    auto driver0 = Driver0::fromStimCircuit(circuitNoX);
     auto driver1 = Driver1::fromStimCircuit(circuit);
     auto driver2 = Driver2::fromStimCircuit(circuit);
 
     SLDR row;
     row.n = n;
     row.code = std::string(code);
-    row.gp0 = decode(driver0.compileDetectorErrorModel(circuit), shots, j);
+    row.gp0 =
+        decode(driver0.compileDetectorErrorModel(circuitNoX), shotsNoX, j);
     row.gp1 = decode(driver1.compileDetectorErrorModel(circuit), shots, j);
     row.gp2 = decode(driver2.compileDetectorErrorModel(circuit), shots, j);
     row.ref = decode(compileWithStim(circuit), shots, j);
@@ -616,20 +651,19 @@ struct Cli {
 
     shots.reserve(n);
     chunk.reserve(batchSize);
-
     gp0Preds.reserve(n);
     phePreds.reserve(n);
     gp0Times.reserve(n);
     pheTimes.reserve(n);
 
-    circlDems.reserve(batchSize);
-    phenoDems.reserve(batchSize);
-
     CircuitPair pair;
     stim::SparseShot shot;
 
-    // warmup drivers
-    std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+    // L0 Z-basis experiments exclude X-detectors.
+    constexpr bool includeXDetectors = false;
+
+    // warmup drivers (constructed once; reused for all DEM compiles)
+    std::tie(pair, shot) = csc.getMemory(d, p, strategy, includeXDetectors);
     auto circlDriver = Driver0::fromStimCircuit(pair.circl);
     auto phenoDriver = Driver0::fromStimCircuit(pair.pheno);
     DEM circlDem = circlDriver.compileDetectorErrorModel(pair.circl);
@@ -648,15 +682,14 @@ struct Cli {
         const size_t chunkSize = std::min(batchSize, n - offset);
 
         chunk.clear();
-
         for (size_t i = 0; i < chunkSize; ++i) {
-          std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+          std::tie(pair, shot) =
+              csc.getMemory(d, p, strategy, includeXDetectors);
           chunk.push_back(std::move(shot));
         }
 
         decode(circlDem, chunk, j, gp0Preds, gp0Times);
         decode(phenoDem, chunk, j, phePreds, pheTimes);
-
         shots.insert(shots.end(),
                      std::make_move_iterator(chunk.begin()),
                      std::make_move_iterator(chunk.end()));
@@ -687,19 +720,18 @@ struct Cli {
         chunk.clear();
         circlDems.clear();
         phenoDems.clear();
-
         for (size_t i = 0; i < chunkSize; ++i) {
-          std::tie(pair, shot) = csc.getMemory(d, p, strategy);
+          std::tie(pair, shot) =
+              csc.getMemory(d, p, strategy, includeXDetectors);
           chunk.push_back(std::move(shot));
-          circlDem = circlDriver.compileDetectorErrorModel(pair.circl);
-          phenoDem = phenoDriver.compileDetectorErrorModel(pair.pheno);
-          circlDems.push_back(std::move(circlDem));
-          phenoDems.push_back(std::move(phenoDem));
+          circlDems.push_back(
+              circlDriver.compileDetectorErrorModel(pair.circl));
+          phenoDems.push_back(
+              phenoDriver.compileDetectorErrorModel(pair.pheno));
         }
 
         decode(circlDems, chunk, j, gp0Preds, gp0Times);
         decode(phenoDems, chunk, j, phePreds, pheTimes);
-
         shots.insert(shots.end(),
                      std::make_move_iterator(chunk.begin()),
                      std::make_move_iterator(chunk.end()));
