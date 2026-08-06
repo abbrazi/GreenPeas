@@ -5,7 +5,7 @@
 # Usage: source scripts/setup.sh <sm_architectures>
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  echo "error: source this script, e.g. 'source scripts/setup.sh 86'" >&2
+  echo "error: source this script, e.g. 'source scripts/setup.sh 120'" >&2
   exit 1
 fi
 
@@ -13,8 +13,7 @@ sm_architectures="${1:-}"
 
 if [[ -z "${sm_architectures}" ]]; then
   echo "usage: source scripts/setup.sh <sm_architectures>" >&2
-  echo "  e.g. source scripts/setup.sh 86    # Ampere" >&2
-  echo "       source scripts/setup.sh 100   # Blackwell" >&2
+  echo "  e.g. source scripts/setup.sh 120   # Blackwell" >&2
   return 1
 fi
 

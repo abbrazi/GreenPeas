@@ -12,10 +12,6 @@
 /// Project headers
 #include "GreenPeas/Common.hpp"
 
-#ifndef GP_DATA_PATH
-#define GP_DATA_PATH "data"
-#endif
-
 namespace gp {
 
 /// @brief Write a prefixed log line to stdout.
@@ -24,14 +20,14 @@ HOST inline void log(std::string_view msg) {
   std::cout << "[GreenPeas AE] " << msg << "\n";
 }
 
-/// @brief Absolute path to a results CSV under `data/ae/`.
+/// @brief Absolute path to a results CSV under `GP_RESULTS_PATH`.
 /// @param filename Result CSV filename.
 /// @return Path to the CSV file.
 HOST inline auto csvPath(std::string_view filename) -> std::filesystem::path {
-  return std::filesystem::path(GP_DATA_PATH) / "ae" / std::string(filename);
+  return std::filesystem::path(GP_RESULTS_PATH) / std::string(filename);
 }
 
-/// @brief Write a CSV header under `data/ae/`.
+/// @brief Write a CSV header under `ae/results/`.
 /// @param filename Result CSV filename.
 /// @param header Comma-separated header row (no trailing newline).
 HOST inline void writeResultsCsvHeader(std::string_view filename,
@@ -45,7 +41,7 @@ HOST inline void writeResultsCsvHeader(std::string_view filename,
   out << header << '\n';
 }
 
-/// @brief Append a CSV data row under `data/ae/`.
+/// @brief Append a CSV data row under `ae/results/`.
 /// @param filename Result CSV filename.
 /// @param row Comma-separated data row (no trailing newline).
 HOST inline void appendResultsCsvRow(std::string_view filename,

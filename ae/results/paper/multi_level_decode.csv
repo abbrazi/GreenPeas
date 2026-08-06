@@ -1,0 +1,13 @@
+n,code,strategy,gp0_fails,gp0_tavg,gp0_tstd,phe_fails,phe_tavg,phe_tstd
+1000000,csc4,static,2566,87.1415,,,
+1000000,csc4,adaptive,2326,78.5395,,,
+1000000,csc6,static,280,613.027,,,
+1000000,csc6,adaptive,194,427.248,,,
+1500000,csc8,static,112,2835.96,,,
+1500000,csc8,adaptive,62,2068.02,,,
+1500000,csc10,static,37,10865.7,,,
+1500000,csc10,adaptive,20,7141.52,,,
+1000000,csc4,adaptive,,,,4796,92.3146,
+1000000,csc6,adaptive,,,,766,1317.41,
+1000000,csc8,adaptive,,,,210,8274.45,
+1000000,csc10,adaptive,,,,89,32181.6,
