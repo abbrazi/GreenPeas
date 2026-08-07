@@ -10,13 +10,13 @@ Reproduce the main paper results with the GreenPeas CLI.
 
 ## Build the CLI
 
-1. From the repository root, source the setup script with your GPU compute capability (`XX`), e.g. `120` for Blackwell:
+1. From the repository root, source the setup script with the Blackwell GPU compute capability: `120`:
 
    ```sh
-   source ./scripts/setup.sh XX
+   source ./scripts/setup.sh 120
    ```
 
-   This exports `CMAKE_ARGS` with `-DGP_USE_CUDA=ON` and `-DGP_CUDA_ARCHITECTURES=XX`.
+   This exports `CMAKE_ARGS` with `-DGP_USE_CUDA=ON` and `-DGP_CUDA_ARCHITECTURES=120`.
 
 2. Configure and build:
 
