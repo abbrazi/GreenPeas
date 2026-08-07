@@ -4,7 +4,7 @@ GPU-accelerated compilation of *detector error models (DEMs)* for adaptive quant
 
 GreenPeas builds DEMs just-in-time so decoders can track mid-circuit branching and time-varying noise.
 
-It is orders of magnitude faster than standard CPU methods (see [paper](https://arxiv.org/abs/2604.16613)).
+It is up to an order of magnitude faster than standard CPU methods (see [paper](https://arxiv.org/abs/2604.16613)).
 
 ## Prerequisites
 
@@ -83,13 +83,13 @@ If you use GreenPeas in your research, please cite:
 
 ```bibtex
 @misc{ziad2026greenpeas,
-  title={GreenPeas: Unlocking Adaptive Quantum Error Correction with Just-in-Time Decoding Hypergraphs},
-  author={Abbas B. Ziad and Jubo Xu and Hongxiang Fan},
-  year={2026},
-  eprint={2604.16613},
-  archivePrefix={arXiv},
-  primaryClass={quant-ph},
-  url={https://arxiv.org/abs/2604.16613},
+      title={GreenPeas: Unlocking adaptive quantum error correction with just-in-time decoding hypergraphs}, 
+      author={Abbas B. Ziad and Jubo Xu and Hongxiang Fan},
+      year={2026},
+      eprint={2604.16613},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph},
+      url={https://arxiv.org/abs/2604.16613}, 
 }
 ```
 
