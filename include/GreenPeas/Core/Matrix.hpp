@@ -63,7 +63,7 @@ struct MatrixView {
   /// @param row Row index in `[0, dimensions.numRows)`.
   /// @param col Column index in `[0, dimensions.numCols)`.
   /// @return Reference to the element at (row, col).
-  HOST DEVICE auto operator()(IndexT row, IndexT col) -> ValueT & {
+  HOST DEVICE FORCE_INLINE auto operator()(IndexT row, IndexT col) -> ValueT & {
     return data[Layout::getIndex(row, col, dimensions)];
   }
 
@@ -71,7 +71,8 @@ struct MatrixView {
   /// @param row Row index in `[0, dimensions.numRows)`.
   /// @param col Column index in `[0, dimensions.numCols)`.
   /// @return Reference to the element at (row, col).
-  HOST DEVICE auto operator()(IndexT row, IndexT col) const -> ValueT & {
+  HOST DEVICE FORCE_INLINE auto operator()(IndexT row, IndexT col) const
+      -> ValueT & {
     return data[Layout::getIndex(row, col, dimensions)];
   }
 };
