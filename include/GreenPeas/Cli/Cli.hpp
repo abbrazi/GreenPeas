@@ -149,7 +149,7 @@ struct Cli {
 
   // == Entry points ==========================================================
 
-  /// @brief Generate compilation results for single-level codes (Fig. 3).
+  /// @brief Generate compilation results for single-level codes (Fig. 3(a)).
   HOST static auto singleLevelCompile(size_t n) -> int {
     log("Generating compilation results for single-level codes");
     log("Running n = " + std::to_string(n) + " shots");
@@ -188,7 +188,7 @@ struct Cli {
     return 0;
   }
 
-  /// @brief Generate decoding results for single-level codes (Fig. 4).
+  /// @brief Generate decoding results for single-level codes (Fig. 3(b/c)).
   HOST static auto singleLevelDecode(size_t n, size_t j) -> int {
     log("Generating decoding results for single-level codes");
     log("Running n = " + std::to_string(n) + " shots");
@@ -227,7 +227,7 @@ struct Cli {
     return 0;
   }
 
-  /// @brief Generate compilation results for multi-level codes (Fig. 6).
+  /// @brief Generate compilation results for multi-level codes (Fig. 6(a)).
   HOST static auto multiLevelCompile(size_t n) -> int {
     log("Generating compilation results for multi-level codes");
     log("Running n = " + std::to_string(n) + " shots");
@@ -252,7 +252,7 @@ struct Cli {
     return 0;
   }
 
-  /// @brief Generate decoding results for multi-level codes (Fig. 7).
+  /// @brief Generate decoding results for multi-level codes (Fig. 6(b,c)).
   HOST static auto multiLevelDecode(size_t n, size_t j) -> int {
     log("Generating decoding results for multi-level codes");
     log("Running n = " + std::to_string(n) + " shots");
@@ -459,6 +459,7 @@ struct Cli {
     config.det_beam = 15;
     config.beam_climbing = true;
     config.no_revisit_dets = true;
+    config.merge_errors = false;
     config.det_orders = build_det_orders(dem, 16, DetOrder::DetIndex, 0);
     return config;
   }
