@@ -22,7 +22,7 @@
 				"ms-python.vscode-pylance"
 			],
 			"settings": {
-				"cmake.configureOnOpen": true,
+				"cmake.configureOnOpen": false,
 				"python.defaultInterpreterPath": "/usr/bin/python3"
 			}
 		}

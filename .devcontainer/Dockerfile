@@ -7,6 +7,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     clang-format \
     codespell \
     gnupg \
+    lcov \
     python3 \
     python3-dev \
     python3-pip \
