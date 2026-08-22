@@ -19,7 +19,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 FetchContent_Declare(
   tesseract
-  GIT_REPOSITORY https://github.com/abbrazi/tesseract-decoder.git
-  GIT_TAG avoid-redundant-dem-flattening-during-decoder-setup
+  GIT_REPOSITORY https://github.com/quantumlib/tesseract-decoder.git
+  GIT_TAG 7a522a2269eb2f3304079040c8699cfc50771493
 )
 FetchContent_MakeAvailable(tesseract)

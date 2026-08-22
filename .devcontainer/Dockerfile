@@ -6,11 +6,14 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     ca-certificates \
     clang-format \
     codespell \
+    doxygen \
     gnupg \
     lcov \
     python3 \
     python3-dev \
+    python3-jinja2 \
     python3-pip \
+    python3-pygments \
     python3-venv \
     wget \
     && wget -qO- https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor -o /usr/share/keyrings/kitware-archive-keyring.gpg \
