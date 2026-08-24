@@ -30,24 +30,23 @@ auto gpMain(int argc, char **argv) -> int {
   singleLevelCompile->add_option("-n,--shots", shots, "Number of shots")
       ->required();
 
-  auto *singleLevelDecode = app.add_subcommand(
-      "single-level-decode",
-      "Generate decoding results for single-level codes.");
+  auto *singleLevelDecode =
+      app.add_subcommand("single-level-decode",
+                         "Generate decoding results for single-level codes.");
   singleLevelDecode->add_option("-n,--shots", shots, "Number of shots")
       ->required();
   singleLevelDecode
       ->add_option("-j,--threads", threads, "Number of decode threads")
       ->capture_default_str();
 
-  auto *multiLevelCompile = app.add_subcommand(
-      "multi-level-compile",
-      "Generate compilation results for multi-level codes.");
+  auto *multiLevelCompile =
+      app.add_subcommand("multi-level-compile",
+                         "Generate compilation results for multi-level codes.");
   multiLevelCompile->add_option("-n,--shots", shots, "Number of shots")
       ->required();
 
   auto *multiLevelDecode = app.add_subcommand(
-      "multi-level-decode",
-      "Generate decoding results for multi-level codes.");
+      "multi-level-decode", "Generate decoding results for multi-level codes.");
   multiLevelDecode->add_option("-n,--shots", shots, "Number of shots")
       ->required();
   multiLevelDecode
