@@ -1,10 +1,10 @@
 set(
   FORMAT_PATTERNS
-  include/**/*.cpp
   include/**/*.hpp
   source/**/*.cpp
-  source/**/*.hpp
   source/**/*.cu
+  source/*.cpp
+  source/*.cu
   tests/**/*.cpp
   tests/**/*.hpp
   CACHE STRING

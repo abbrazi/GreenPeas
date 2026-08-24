@@ -25,14 +25,14 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -G Ninja -DGP_DEVELOPER_MODE=ON -DGP_ENABLE_COVERAGE=ON
 
-      - name: Build
-        run: cmake --build build --target all
-
       - name: Lint
         run: cmake --build build --target format-check
 
       - name: Spell check
         run: cmake --build build --target spell-check
+
+      - name: Build
+        run: cmake --build build --target all
 
       - name: Test
         working-directory: build/tests
