@@ -1,16 +1,66 @@
-# Python
-__pycache__/
-*.egg-info/
-*.py[cod]
-venv/
-scripts/.bootstrap.env
-
-# Build / packaging
-_skbuild/
+# CMake / C++
 build/
-dist/
+Build/
+build-*/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+CMakeLists.txt.user
+CMakeUserPresets.json
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+install_manifest.txt
+compile_commands.json
 Testing/
+_deps
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.gch
+*.pch
+*.d
+*.dwo
+*.pdb
+*.ilk
 
-# Compiled extension (editable installs)
-python/greenpeas/_gppy*.pyd
-python/greenpeas/_gppy*.so
+# CUDA
+*.ptx
+*.cubin
+*.fatbin
+*.gpu
+
+# Python / scikit-build
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+wheels/
+_skbuild/
+.venv/
+venv/
+.env
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.lcov
+cover/
+
+# In-tree pybind11 module (CMake writes _gppy into python/greenpeas/)
+*.pyd
+
+# Editors / local cache
+.cache/
+*.swp
+*.bak
+*.tmp
