@@ -486,6 +486,10 @@ struct Circuit {
     native.parseFromStimCircuit(circuit);
     return native;
   }
+
+  /// @brief Serialize the circuit STEPG to GraphML.
+  /// @return GraphML XML document as a UTF-8 string.
+  HOST auto getXML() const -> std::string { return stepg.getXML(); }
 };
 
 } // namespace gp

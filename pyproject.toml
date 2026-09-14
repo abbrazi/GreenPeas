@@ -5,7 +5,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "greenpeas"
 version = "0.1.0"
-description = "Python bindings for GreenPeas QEC codes"
+description = "GPU-accelerated compilation of detector error models."
 readme = "README.md"
 authors = [{ name = "Abbas Bracken Ziad", email = "abbasbrackenziad@gmail.com" }]
 license = "Apache-2.0"
