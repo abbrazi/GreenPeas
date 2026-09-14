@@ -2,6 +2,8 @@
 #define GREENPEAS_QEC_ERRORANALYSIS_STEPG_HPP
 
 /// Standard headers
+#include <cstdint>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -9,7 +11,11 @@
 #include "GreenPeas/Common.hpp"
 #include "GreenPeas/Core/Graph.hpp"
 #include "GreenPeas/Core/Vector.hpp"
+#include "GreenPeas/Core/Words.hpp"
 #include "GreenPeas/Policies/Storage/Host.hpp"
+
+/// Third-party headers
+#include "pugixml.hpp"
 
 namespace gp {
 
@@ -28,6 +34,15 @@ struct STCoord {
     return t * numNodesPerLayer + s;
   }
 };
+
+/// @brief Serialize a pugixml document to a UTF-8 string.
+/// @param doc XML document to serialize.
+/// @return Pretty-printed XML as a UTF-8 string.
+HOST inline auto toString(const pugi::xml_document &doc) -> std::string {
+  std::ostringstream stream;
+  doc.save(stream, "  ");
+  return stream.str();
+}
 
 /// @brief Space-time error propagation graph (STEPG).
 ///
@@ -128,6 +143,70 @@ struct STEPG {
   HOST void mergeProbabilities(STCoord coord, double pNew) {
     auto &pOld = probs[coord.getIndex(numNodesPerLayer)];
     pOld = (1 - pNew) * pOld + (1 - pOld) * pNew;
+  }
+
+  /// @brief Serialize the STEPG to GraphML.
+  /// @return GraphML XML document as a UTF-8 string.
+  HOST auto getXML() const -> std::string {
+    pugi::xml_document doc;
+
+    auto declaration = doc.append_child(pugi::node_declaration);
+    declaration.append_attribute("version") = "1.0";
+    declaration.append_attribute("encoding") = "UTF-8";
+
+    auto graphml = doc.append_child("graphml");
+    graphml.append_attribute("xmlns") = "http://graphml.graphdrawing.org/xmlns";
+
+    auto appendKey = [&](const char *id,
+                         const char *forWhat,
+                         const char *name,
+                         const char *type) {
+      auto key = graphml.append_child("key");
+      key.append_attribute("id") = id;
+      key.append_attribute("for") = forWhat;
+      key.append_attribute("attr.name") = name;
+      key.append_attribute("attr.type") = type;
+    };
+
+    appendKey("d0", "node", "s", "long");
+    appendKey("d1", "node", "t", "long");
+
+    auto graphNode = graphml.append_child("graph");
+    graphNode.append_attribute("id") = "G";
+    graphNode.append_attribute("edgedefault") = "directed";
+
+    auto appendData = [](pugi::xml_node parent, const char *key, auto value) {
+      auto data = parent.append_child("data");
+      data.append_attribute("key") = key;
+      data.text().set(value);
+    };
+
+    for (uint32_t i = 0; i < numNodes; ++i) {
+      auto node = graphNode.append_child("node");
+      node.append_attribute("id") = i;
+      appendData(node, "d0", i % numNodesPerLayer);
+      appendData(node, "d1", i / numNodesPerLayer);
+    }
+
+    for (uint32_t source = 0; source < numNodes; ++source) {
+      const auto targets = graph[source];
+      const auto target0 = getLower(targets);
+      const auto target1 = getUpper(targets);
+
+      if (target0 != UINT32_MAX) {
+        auto edge = graphNode.append_child("edge");
+        edge.append_attribute("source") = source;
+        edge.append_attribute("target") = target0;
+      }
+
+      if (target1 != UINT32_MAX) {
+        auto edge = graphNode.append_child("edge");
+        edge.append_attribute("source") = source;
+        edge.append_attribute("target") = target1;
+      }
+    }
+
+    return toString(doc);
   }
 };
 

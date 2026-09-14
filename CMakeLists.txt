@@ -5,7 +5,7 @@ include(cmake/prelude.cmake)
 project(
   GreenPeas
   VERSION 0.1.0
-  DESCRIPTION "GreenPeas is a C++/CUDA toolchain for the high-speed, just-in-time compilation of decoding hypergraphs."
+  DESCRIPTION "GPU-accelerated compilation of detector error models."
   LANGUAGES CXX
 )
 
@@ -47,7 +47,7 @@ else()
   set(GP_EXT cpp)
 endif()
 
-target_link_libraries(libgp INTERFACE libstim tesseract_lib)
+target_link_libraries(libgp INTERFACE libstim tesseract_lib pugixml::pugixml)
 
 target_include_directories(
   libgp

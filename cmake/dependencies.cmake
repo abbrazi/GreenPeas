@@ -23,3 +23,10 @@ FetchContent_Declare(
   GIT_TAG 7a522a2269eb2f3304079040c8699cfc50771493
 )
 FetchContent_MakeAvailable(tesseract)
+
+FetchContent_Declare(
+  pugixml
+  GIT_REPOSITORY https://github.com/zeux/pugixml.git
+  GIT_TAG v1.16
+)
+FetchContent_MakeAvailable(pugixml)

@@ -8,10 +8,11 @@ from .codes import (
     MeasurementStrategy,
     SurfaceCode,
 )
-from .error_analysis import CorrelationLevel, Driver, get_driver
+from .error_analysis import Circuit, CorrelationLevel, Driver, get_driver
 
 __all__ = [
     "BBCode",
+    "Circuit",
     "ConcatenatedSurfaceCode",
     "CorrelationLevel",
     "Driver",

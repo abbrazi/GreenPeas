@@ -1,6 +1,7 @@
 /// Standard headers
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 
 /// Helper headers
 #include "../../Helpers/Macros.hpp"
@@ -209,6 +210,79 @@ static void testSTEPGMergeProbabilities() {
   REQUIRE(stepg.probs[index] == 0.625);
 }
 
+static void testSTEPGGetXML() {
+  STEPG stepg(2, 5);
+
+  // Persistent flows
+  stepg.addFlow({0, 0}, {0, 1});
+  stepg.addFlow({1, 0}, {1, 1});
+  stepg.addFlow({2, 0}, {2, 1});
+  stepg.addFlow({3, 0}, {3, 1});
+  stepg.addFlow({4, 0}, {4, 1});
+
+  // Propagation flows
+  stepg.addFlow({2, 0}, {1, 1});
+  stepg.addFlow({4, 0}, {3, 1});
+
+  const std::string expected = R"(<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <key id="d0" for="node" attr.name="s" attr.type="long" />
+  <key id="d1" for="node" attr.name="t" attr.type="long" />
+  <graph id="G" edgedefault="directed">
+    <node id="0">
+      <data key="d0">0</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="1">
+      <data key="d0">1</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="2">
+      <data key="d0">2</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="3">
+      <data key="d0">3</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="4">
+      <data key="d0">4</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="5">
+      <data key="d0">0</data>
+      <data key="d1">1</data>
+    </node>
+    <node id="6">
+      <data key="d0">1</data>
+      <data key="d1">1</data>
+    </node>
+    <node id="7">
+      <data key="d0">2</data>
+      <data key="d1">1</data>
+    </node>
+    <node id="8">
+      <data key="d0">3</data>
+      <data key="d1">1</data>
+    </node>
+    <node id="9">
+      <data key="d0">4</data>
+      <data key="d1">1</data>
+    </node>
+    <edge source="0" target="5" />
+    <edge source="1" target="6" />
+    <edge source="2" target="7" />
+    <edge source="2" target="6" />
+    <edge source="3" target="8" />
+    <edge source="4" target="9" />
+    <edge source="4" target="8" />
+  </graph>
+</graphml>
+)";
+
+  REQUIRE(stepg.getXML() == expected);
+}
+
 auto main() -> int {
   // --- STCoord ---
 
@@ -240,6 +314,9 @@ auto main() -> int {
 
   // STEPG::mergeProbabilities
   testSTEPGMergeProbabilities();
+
+  // STEPG::getXML
+  testSTEPGGetXML();
 
   // All tests passed!
   return 0;
