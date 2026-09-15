@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 /// Project headers
 #include "GreenPeas/Common.hpp"
@@ -181,7 +182,27 @@ struct STEPG {
       data.text().set(value);
     };
 
+    // Flag non-zero-degree nodes.
+    std::vector<bool> connected(numNodes, false);
+    for (uint32_t source = 0; source < numNodes; ++source) {
+      const auto targets = graph[source];
+      const auto target0 = getLower(targets);
+      const auto target1 = getUpper(targets);
+
+      if (target0 != UINT32_MAX) {
+        connected[source] = connected[target0] = true;
+      }
+
+      if (target1 != UINT32_MAX) {
+        connected[source] = connected[target1] = true;
+      }
+    }
+
     for (uint32_t i = 0; i < numNodes; ++i) {
+      if (!connected[i]) {
+        continue;
+      }
+
       auto node = graphNode.append_child("node");
       node.append_attribute("id") = i;
       appendData(node, "d0", i % numNodesPerLayer);

@@ -211,7 +211,7 @@ static void testSTEPGMergeProbabilities() {
 }
 
 static void testSTEPGGetXML() {
-  STEPG stepg(2, 5);
+  STEPG stepg(3, 5);
 
   // Persistent flows
   stepg.addFlow({0, 0}, {0, 1});
@@ -219,10 +219,17 @@ static void testSTEPGGetXML() {
   stepg.addFlow({2, 0}, {2, 1});
   stepg.addFlow({3, 0}, {3, 1});
   stepg.addFlow({4, 0}, {4, 1});
+  stepg.addFlow({0, 1}, {0, 2});
+  stepg.addFlow({1, 1}, {1, 2});
+  stepg.addFlow({2, 1}, {2, 2});
+  stepg.addFlow({3, 1}, {3, 2});
+  stepg.addFlow({4, 1}, {4, 2});
 
   // Propagation flows
   stepg.addFlow({2, 0}, {1, 1});
   stepg.addFlow({4, 0}, {3, 1});
+  stepg.addFlow({0, 1}, {1, 2});
+  stepg.addFlow({2, 1}, {3, 2});
 
   const std::string expected = R"(<?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns">
@@ -269,6 +276,26 @@ static void testSTEPGGetXML() {
       <data key="d0">4</data>
       <data key="d1">1</data>
     </node>
+    <node id="10">
+      <data key="d0">0</data>
+      <data key="d1">2</data>
+    </node>
+    <node id="11">
+      <data key="d0">1</data>
+      <data key="d1">2</data>
+    </node>
+    <node id="12">
+      <data key="d0">2</data>
+      <data key="d1">2</data>
+    </node>
+    <node id="13">
+      <data key="d0">3</data>
+      <data key="d1">2</data>
+    </node>
+    <node id="14">
+      <data key="d0">4</data>
+      <data key="d1">2</data>
+    </node>
     <edge source="0" target="5" />
     <edge source="1" target="6" />
     <edge source="2" target="7" />
@@ -276,6 +303,40 @@ static void testSTEPGGetXML() {
     <edge source="3" target="8" />
     <edge source="4" target="9" />
     <edge source="4" target="8" />
+    <edge source="5" target="10" />
+    <edge source="5" target="11" />
+    <edge source="6" target="11" />
+    <edge source="7" target="12" />
+    <edge source="7" target="13" />
+    <edge source="8" target="13" />
+    <edge source="9" target="14" />
+  </graph>
+</graphml>
+)";
+
+  REQUIRE(stepg.getXML() == expected);
+}
+
+static void testSTEPGGetXMLSkipsZeroDegreeNodes() {
+  STEPG stepg(2, 3);
+
+  // Only s = 0 carries a flow, so s = 1 and s = 2 are left out.
+  stepg.addFlow({0, 0}, {0, 1});
+
+  const std::string expected = R"(<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+  <key id="d0" for="node" attr.name="s" attr.type="long" />
+  <key id="d1" for="node" attr.name="t" attr.type="long" />
+  <graph id="G" edgedefault="directed">
+    <node id="0">
+      <data key="d0">0</data>
+      <data key="d1">0</data>
+    </node>
+    <node id="3">
+      <data key="d0">0</data>
+      <data key="d1">1</data>
+    </node>
+    <edge source="0" target="3" />
   </graph>
 </graphml>
 )";
@@ -317,6 +378,7 @@ auto main() -> int {
 
   // STEPG::getXML
   testSTEPGGetXML();
+  testSTEPGGetXMLSkipsZeroDegreeNodes();
 
   // All tests passed!
   return 0;
