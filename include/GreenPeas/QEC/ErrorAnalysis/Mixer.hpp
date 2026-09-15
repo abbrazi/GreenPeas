@@ -96,7 +96,8 @@ struct Mixer {
   /// @param numLayers Number of layers in the circuit,
   HOST static void
   initialise(STEPG &stepg, uint32_t numQubits, uint32_t numLayers) {
-    for (uint32_t layer = 0; layer + 1 < numLayers; ++layer) {
+    // Layer 0 carries no persistence!
+    for (uint32_t layer = 1; layer + 1 < numLayers; ++layer) {
       for (uint32_t qubit = 0; qubit < numQubits; ++qubit) {
         const uint32_t base = qubit * numNodesPerQubit;
         const uint32_t x = base + getNodeOffset(NodeType::X);
@@ -110,8 +111,12 @@ struct Mixer {
   /// @brief Apply a reset gate on qubit @p q at layer @p l.
   /// @param stepg STEPG to update.
   /// @param q Qubit index.
-  /// @param l Time layer index.
+  /// @param l Time layer index. A reset in layer 0 has no persistence to cut.
   HOST static void applyR(STEPG &stepg, uint32_t q, uint32_t l) {
+    if (l == 0) {
+      return;
+    }
+
     const uint32_t base = q * numNodesPerQubit;
     const uint32_t x = base;
     const uint32_t z = base + 1;

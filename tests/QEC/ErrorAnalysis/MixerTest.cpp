@@ -12,10 +12,10 @@ using namespace gp;
 
 template <CorrelationLevel L>
 static void testMixerApplyRRemovesPersistenceFlows() {
-  STEPG stepg(2, 32);
+  STEPG stepg(3, 32);
 
   constexpr uint32_t q = 0;
-  constexpr uint32_t l = 0;
+  constexpr uint32_t l = 1;
 
   const uint32_t x = q * Mixer<L>::numNodesPerQubit;
   const uint32_t z = q * Mixer<L>::numNodesPerQubit + 1;

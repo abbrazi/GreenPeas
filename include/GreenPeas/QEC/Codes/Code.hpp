@@ -288,7 +288,6 @@ struct Code {
     circuit.safe_append_u("R", qubitIDs.data);
     circuit.safe_append_u("TICK", {});
     circuit.safe_append_u("X_ERROR", qubitIDs.data, {p});
-    circuit.safe_append_u("DEPOLARIZE1", qubitIDs.checks, {p / 10});
     return circuit;
   }
 

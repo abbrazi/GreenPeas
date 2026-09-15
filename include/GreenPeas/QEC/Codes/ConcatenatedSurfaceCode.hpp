@@ -506,7 +506,6 @@ struct ConcatenatedSurfaceCode {
     circuits.safe_append_u("R", qubitIDs.data);
     circuits.safe_append_u("TICK", {});
     circuits.circl.safe_append_u("X_ERROR", qubitIDs.data, {p});
-    circuits.circl.safe_append_u("DEPOLARIZE1", qubitIDs.checks, {p / 10});
 
     sim.safe_do_circuit(circuits.circl);
 

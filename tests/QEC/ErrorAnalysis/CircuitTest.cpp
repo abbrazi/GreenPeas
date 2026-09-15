@@ -114,9 +114,10 @@ static void testCircuitApplyOpR() {
   constexpr CircuitParameters<CorrelationLevel::L2> parameters{4, 3, 4, 2, 1};
 
   Circuit<Layout, CorrelationLevel::L2> circuit(parameters);
+  circuit.counters.layer = 1;
 
   constexpr uint32_t q = 0;
-  constexpr uint32_t l = 0;
+  constexpr uint32_t l = 1;
 
   const uint32_t x = q * Mixer<CorrelationLevel::L2>::numNodesPerQubit;
   const uint32_t z = q * Mixer<CorrelationLevel::L2>::numNodesPerQubit + 1;
