@@ -233,8 +233,8 @@ static void testSTEPGGetXML() {
 
   const std::string expected = R"(<?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns">
-  <key id="d0" for="node" attr.name="s" attr.type="long" />
-  <key id="d1" for="node" attr.name="t" attr.type="long" />
+  <key id="d0" for="node" attr.name="x" attr.type="long" />
+  <key id="d1" for="node" attr.name="y" attr.type="long" />
   <graph id="G" edgedefault="directed">
     <node id="0">
       <data key="d0">0</data>
@@ -325,8 +325,8 @@ static void testSTEPGGetXMLSkipsZeroDegreeNodes() {
 
   const std::string expected = R"(<?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns">
-  <key id="d0" for="node" attr.name="s" attr.type="long" />
-  <key id="d1" for="node" attr.name="t" attr.type="long" />
+  <key id="d0" for="node" attr.name="x" attr.type="long" />
+  <key id="d1" for="node" attr.name="y" attr.type="long" />
   <graph id="G" edgedefault="directed">
     <node id="0">
       <data key="d0">0</data>
