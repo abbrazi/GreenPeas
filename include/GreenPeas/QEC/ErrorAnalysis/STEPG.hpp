@@ -169,8 +169,8 @@ struct STEPG {
       key.append_attribute("attr.type") = type;
     };
 
-    appendKey("d0", "node", "s", "long");
-    appendKey("d1", "node", "t", "long");
+    appendKey("d0", "node", "x", "long");
+    appendKey("d1", "node", "y", "long");
 
     auto graphNode = graphml.append_child("graph");
     graphNode.append_attribute("id") = "G";
